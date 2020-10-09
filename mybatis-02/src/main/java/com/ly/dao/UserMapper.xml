@@ -5,6 +5,17 @@
 <!--namespace=绑定一个对应的Dao/Mapper接口-->
 <mapper namespace="com.ly.dao.UserMapper">
 
+    <!--通配符查询-->
+    <select id="getUserLike" resultType="com.ly.pojo.User">
+        select * from mybatis.user where name like #{arg};
+    </select>
+
+    <!--(#{userId}, #{userName}, #{password})和map中的key一一对应 -->
+    <insert id="addUserByMap" parameterType="map">
+        insert into mybatis.user (id, name, pwd) values (#{userId}, #{userName}, #{password});
+    </insert>
+
+
     <!--查询语句-->
     <select id="getUserList" resultType="com.ly.pojo.User">
         select * from mybatis.user;
@@ -14,6 +25,7 @@
         select * from mybatis.user where id = #{id};
     </select>
 
+    <!--插入语句，(#{id}, #{name}, #{pwd})与User对象中的字段一致-->
     <insert id="addUser" parameterType="com.ly.pojo.User">
         insert into mybatis.user (id, name, pwd) values (#{id}, #{name}, #{pwd});
     </insert>

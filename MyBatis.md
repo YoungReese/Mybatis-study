@@ -751,3 +751,37 @@ MyBatis对JDBC操作数据库做了一系列的优化：
 （3） mybatis 提供了一级和二级缓存，提高了程序性能。
 （4） mybatis使用动态SQL语句，提高了SQL维护。（此优势是基于XML配置）
 （5） mybatis对数据库操作结果进行自动映射
+
+
+
+```java
+ catch (Exception e) {
+            System.out.println("addUser插入失败");
+            e.printStackTrace();
+        }
+```
+
+
+
+
+
+```java
+java.lang.ExceptionInInitializerError
+### Error building SqlSession.
+### The error may exist in com/lhj/mapper/PersonMapper.xml
+### Cause: org.apache.ibatis.builder.BuilderException: ......
+```
+
+这个时候虽然在pom.xml文件中配置了，但需要重新刷新一下（**generate sources and update folders for all projects**）
+
+<img src="MyBatis.assets/image-20201009214143542.png" alt="image-20201009214143542" style="zoom:67%;" />
+
+
+
+[Java DAO 模式](https://www.runoob.com/note/27029)
+
+
+
+&serverTimezone=UTC
+
+Cause: com.mysql.jdbc.exceptions.jdbc4.MySQLNonTransientConnectionException: Public Key Retrieval is not allowed

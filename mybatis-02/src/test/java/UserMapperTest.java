@@ -1,19 +1,57 @@
-package com.ly.dao;
-
+import com.ly.dao.UserMapper;
 import com.ly.pojo.User;
 import com.ly.utils.MybatisUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * liyang 2020-10-08
+ * liyang 2020-10-10
  * 测试封装好的MybatisUtils生成sqlSession，然后进行数据库操作
  */
 public class UserMapperTest {
+
+    @Test
+    public void testGetUserLike() {
+        // 获得SqlSession对象
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        try {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+            List<User> userList = mapper.getUserLike("%li%");
+            for (User user : userList) {
+                System.out.println(user);
+            }
+        } finally {
+            sqlSession.close();
+        }
+    }
+
+    @Test
+    public void testAddUserByMap() {
+        // 这种使用map的插入方式还可以改造，然后用于更新操作
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        try {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("userId", "5");
+            map.put("userName", "赵六");
+            map.put("password", "123456");
+
+            int res = mapper.addUserByMap(map);
+            if (res > 0) {
+                System.out.println("插入成功");
+                sqlSession.commit();
+            }
+        } catch (Exception e) {
+            System.out.println("插入失败，插入的id(主键)可能已经存在！");
+        } finally {
+            sqlSession.close();
+        }
+    }
 
     @Test
     public void testGetUserList() {

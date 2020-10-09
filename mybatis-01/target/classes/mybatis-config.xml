@@ -18,6 +18,7 @@
 
 
     <!--每一个Mapper.xml都需要在Mybatis核心配置文件中注册！
+    注意这里的路径不是点，而是斜杠
     <mapper resource="com/ly/dao/UserMapper.xml"/>
     -->
     <mappers>

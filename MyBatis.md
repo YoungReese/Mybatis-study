@@ -110,7 +110,7 @@ Spring、SpringMVC、SpringBoot
 
 思路：搭建环境 - 导入Mybatis - 编写代码 - 测试
 
-#### 2.1 搭建环境
+### 2.1 搭建环境
 
 搭建数据库
 
@@ -139,11 +139,11 @@ Spring、SpringMVC、SpringBoot
 
 ```xml
 <!--mysql驱动-->
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.49</version>
-        </dependency>
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>5.1.49</version>
+</dependency>
 ```
 
 *   mybatis
@@ -157,27 +157,27 @@ Spring、SpringMVC、SpringBoot
 </dependency>
 
 <!-- https://mvnrepository.com/artifact/org.mybatis/mybatis -->
-        <dependency>
-            <groupId>org.mybatis</groupId>
-            <artifactId>mybatis</artifactId>
-            <version>3.5.6</version>
-        </dependency>
+<dependency>
+    <groupId>org.mybatis</groupId>
+    <artifactId>mybatis</artifactId>
+    <version>3.5.6</version>
+</dependency>
 ```
 
 *   junit
 
 ```xml
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
+<dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.12</version>
+    <scope>test</scope>
+</dependency>
 ```
 
 
 
-####  2.2 创建一个模块
+###  2.2 创建一个模块
 
 *   编写mybatis的核心配置文件
 
@@ -259,7 +259,7 @@ public class MybatisUtils {
 
 
 
-#### 2.3 编写代码
+### 2.3 编写代码
 
 *   实体类
 
@@ -368,7 +368,7 @@ public class UserDaoImpl implements UserDao {
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--namespace=绑定一个对应的Dao/Mapper接口-->
-<mapper namespace="com.ly.dao.UserDao">
+<mapper namespace="com.ly.dao.UserMapper">
 
     <!--查询语句-->
     <select id="getUserList" resultType="com.ly.pojo.User">
@@ -379,11 +379,11 @@ public class UserDaoImpl implements UserDao {
 
 
 
-#### 2.4 测试
+### 2.4 测试
 
 注意点：
 
-org.apache.ibatis.binding.BindingException: Type interface com.ly.dao.UserDao is not known to the MapperRegistry.
+org.apache.ibatis.binding.BindingException: Type interface com.ly.dao.UserMapper is not known to the MapperRegistry.
 
 **MapperRegistry是什么？**
 
@@ -393,7 +393,7 @@ org.apache.ibatis.binding.BindingException: Type interface com.ly.dao.UserDao is
 
 
 
-org.apache.ibatis.binding.BindingException: Type interface com.ly.dao.UserDao is not known to the MapperRegistry.
+org.apache.ibatis.binding.BindingException: Type interface com.ly.dao.UserMapper is not known to the MapperRegistry.
 
 
 
@@ -413,26 +413,26 @@ Caused by: java.io.IOException: Could not find resource com/ly/dao/UserMapper.xm
 
 ```xml
 <!--在build中配置resource，来放置我们资源导出失败问题-->
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/java</directory>
-                <includes>
-                    <include>**/*.properties</include>
-                    <include>**/*.xml</include>
-                </includes>
-                <filtering>false</filtering>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-                <includes>
-                    <include>**/*.properties</include>
-                    <include>**/*.xml</include>
-                </includes>
-                <filtering>false</filtering>
-            </resource>
-        </resources>
-    </build>
+<build>
+    <resources>
+        <resource>
+            <directory>src/main/java</directory>
+            <includes>
+                <include>**/*.properties</include>
+                <include>**/*.xml</include>
+            </includes>
+            <filtering>false</filtering>
+        </resource>
+        <resource>
+            <directory>src/main/resources</directory>
+            <includes>
+                <include>**/*.properties</include>
+                <include>**/*.xml</include>
+            </includes>
+            <filtering>false</filtering>
+        </resource>
+    </resources>
+</build>
 ```
 
 能出现问题说明：Maven静态资源过滤问题
@@ -497,8 +497,6 @@ SSL协议提供服务主要：
 
 
 
-
-
 *   junit测试
 
 测试的问题搞定了！
@@ -506,3 +504,250 @@ SSL协议提供服务主要：
 一个是mapper的配置问题！
 
 一个是pom.xml配置的过滤问题！
+
+```java
+package com.ly.dao;
+
+import com.ly.pojo.User;
+import com.ly.utils.MybatisUtils;
+import org.apache.ibatis.session.SqlSession;
+import org.junit.Test;
+
+import java.util.List;
+
+/**
+ * liyang 2020-10-08
+ * 测试封装好的MybatisUtils生成sqlSession，然后进行数据库操作
+ */
+public class UserDaoTest {
+
+    @Test
+    public void test() {
+        // 获得SqlSession对象
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+
+        // 方法1：getMapper然后执行sql，官方推荐
+        UserDao mapper = sqlSession.getMapper(UserDao.class);
+        List<User> userList = mapper.getUserList();
+
+//        // 方法2：已经过时，不推荐
+//        List<User> userList = sqlSession.selectList("com.ly.dao.UserMapper.getUserList");
+        
+        for (User user : userList) {
+            System.out.println(user);
+        }
+
+        // 关闭SqlSession
+        sqlSession.close();
+    }
+}
+```
+
+
+
+鉴于需要确保每次sqlSession的close操作都被执行
+
+![image-20201008231207073](MyBatis.assets/image-20201008231207073.png)
+
+
+
+于是改造代码如下所示：
+
+```java
+public class UserDaoTest {
+
+    @Test
+    public void test() {
+        // 获得SqlSession对象
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        try {
+            UserDao mapper = sqlSession.getMapper(UserDao.class);
+            List<User> userList = mapper.getUserList();
+            for (User user : userList) {
+                System.out.println(user);
+            }
+        } finally {
+            sqlSession.close();
+        }
+    }
+}
+```
+
+
+
+## 3 CRUD
+
+将UserDao及其相关配置名改为UserMapper
+
+<img src="MyBatis.assets/image-20201009100527526.png" alt="image-20201009100527526" style="zoom:67%;" />
+
+### 3.1 namespace
+
+namespace中的包名要和Dao/Mapper接口的包名一致
+
+
+
+resouce：路径是分割是'/'
+
+其他位置的限定：全链路名，分割是'.'
+
+
+
+只有select会自动提交，insert、update、delete并不会自动提交，所以需要手动提交，后面的操作关注三个箭头指向的类即可。
+
+
+
+
+
+### 3.2 getUserById
+
+```java
+// 查询一个用户
+User getUserById(int id);
+```
+
+```xml
+<select id="getUserById" parameterType="int" resultType="com.ly.pojo.User">
+    select * from mybatis.user where id = #{id};
+</select>
+```
+
+```java
+@Test
+public void testGetUserById() {
+    // 获得SqlSession对象
+    SqlSession sqlSession = MybatisUtils.getSqlSession();
+    try {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        User user = mapper.getUserById(1);
+        System.out.println(user);
+    } finally {
+        sqlSession.close();
+    }
+}
+```
+
+
+
+
+
+### 3.3 addUser
+
+```java
+// 查询一个用户
+User getUserById(int id);
+```
+
+```xml
+<insert id="addUser" parameterType="com.ly.pojo.User">
+    insert into mybatis.user (id, name, pwd) values (#{id}, #{name}, #{pwd});
+</insert>
+```
+
+```java
+@Test
+public void testAddUser() {
+    // 获得SqlSession对象
+    SqlSession sqlSession = MybatisUtils.getSqlSession();
+    try {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        int res = mapper.addUser(new User(4, "王五", "12345678"));
+
+        if (res > 0) {
+            System.out.println("插入成功");
+            sqlSession.commit();
+        }
+        System.out.println(res);
+    } finally {
+        sqlSession.close();
+    }
+}
+```
+
+
+
+### 3.4 updateUser
+
+```java
+// 修改一个用户
+int updateUser(User user);
+```
+
+```xml
+<update id="updateUser" parameterType="com.ly.pojo.User">
+    update mybatis.user set name = #{name}, pwd = #{pwd} where id = #{id};
+</update>
+```
+
+```java
+@Test
+public void testUpdateUser() {
+    // 获得SqlSession对象
+    SqlSession sqlSession = MybatisUtils.getSqlSession();
+    try {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        int res = mapper.updateUser(new User(4, "Alice", "123456"));
+        if (res > 0) {
+            System.out.println("更新成功");
+            sqlSession.commit();
+        }
+        System.out.println(res);
+    } finally {
+        sqlSession.close();
+    }
+}
+```
+
+
+
+### 3.5 deleteUser
+
+```java
+// 删除一个用户
+int deleteUser(int id);
+```
+
+```xml
+<delete id="deleteUser" parameterType="int">
+    delete from mybatis.user where id = #{id};
+</delete>
+```
+
+```java
+@Test
+public void testDeleteUser() {
+    // 获得SqlSession对象
+    SqlSession sqlSession = MybatisUtils.getSqlSession();
+    try {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        int res = mapper.deleteUser(4);
+        if (res > 0) {
+            System.out.println("删除成功");
+            sqlSession.commit();
+        }
+        System.out.println(res); // 成功返回1
+    } finally {
+        sqlSession.close();
+    }
+}
+```
+
+
+
+[带有catch异常的mybatis的crud](https://blog.csdn.net/qq_44679744/article/details/101052428)
+
+**【以上，crud操作可能会报异常，所以最好catch一下异常，后续添加】**
+
+
+
+### 3.6 Mybatis和JDBC的区别
+
+[JDBC数据增删改过程](https://blog.csdn.net/u010176014/article/details/52028854?utm_medium=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param)
+
+JDBC是Java提供的一个**操作数据库的API**； MyBatis是一个持久层ORM框架，**底层是对JDBC的封装**。
+MyBatis对JDBC操作数据库做了一系列的优化：
+（1） mybatis使用已有的连接池管理，避免浪费资源，提高程序可靠性。
+（2） mybatis提供插件自动生成DAO层代码，提高编码效率和准确性。
+（3） mybatis 提供了一级和二级缓存，提高了程序性能。
+（4） mybatis使用动态SQL语句，提高了SQL维护。（此优势是基于XML配置）
+（5） mybatis对数据库操作结果进行自动映射

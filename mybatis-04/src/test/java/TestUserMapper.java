@@ -8,13 +8,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 /**
- * liyang 2020-10-10
+ * liyang 2020-10-11
  * 测试ResultMap，解决数据库查询字段与实体类属性字段不同名问题
  *
  * User中pwd改成password之后，使用ResultMap
  */
 public class TestUserMapper {
+
+    static final Logger logger = Logger.getLogger(TestUserMapper.class);
 
     @Test
     public void testGetUserLike() {
@@ -73,6 +77,7 @@ public class TestUserMapper {
         try {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
             User user = mapper.getUserById(1);
+            logger.info("进入了testGetUserById函数！");
             System.out.println(user);
         } finally {
             sqlSession.close();
@@ -133,6 +138,14 @@ public class TestUserMapper {
         } finally {
             sqlSession.close();
         }
+    }
+
+
+    @Test
+    public void testLog4j() {
+        logger.info("info:进入了testLog4j");
+        logger.debug("debug:进入了testLog4j");
+        logger.error("error:进入了testLog4j");
     }
 
 }

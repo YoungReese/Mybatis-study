@@ -8,8 +8,10 @@
     <properties resource="db.properties"/>
 
     <settings>
-        <!--日志工厂的实现方式-->
-        <setting name="logImpl" value="STDOUT_LOGGING"/>
+        <!--日志工厂的实现方式，STDOUT_LOGGING不需要导包-->
+        <!--<setting name="logImpl" value="STDOUT_LOGGING"/>-->
+        <!--LoG4J需要导包-->
+        <setting name="logImpl" value="LOG4J"/>
     </settings>
 
     <typeAliases>

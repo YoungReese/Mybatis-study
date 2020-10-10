@@ -1303,9 +1303,7 @@ public class User {
 </settings>
 ```
 
-![1569892595060](MyBatis.assets/1569892595060.png)
-
-
+![image-20201011040214768](MyBatis.assets/image-20201011040214768.png)
 
 ### 6.2、Log4j
 
@@ -1344,7 +1342,7 @@ public class User {
     
     #文件输出的相关设置
     log4j.appender.file = org.apache.log4j.RollingFileAppender
-    log4j.appender.file.File=./log/kuang.log
+    log4j.appender.file.File=./log/ly.txt
     log4j.appender.file.MaxFileSize=10mb
     log4j.appender.file.Threshold=DEBUG
     log4j.appender.file.layout=org.apache.log4j.PatternLayout
@@ -1362,38 +1360,46 @@ public class User {
 
     ```xml
     <settings>
-        <setting name="logImpl" value=""/>
+        <setting name="logImpl" value="LOG4J"/>
     </settings>
     ```
 
 4. Log4j的使用！，直接测试运行刚才的查询
 
-    ![1569893505842](MyBatis.assets/1569893505842.png)
-
-
+![image-20201011041135920](MyBatis.assets/image-20201011041135920.png)
 
 **简单使用**
 
-1. 在要使用Log4j 的类中，导入包  import org.apache.log4j.Logger;
+1、在要使用Log4j 的类中，导入包 
 
-2. 日志对象，参数为当前类的class
+```java
+import org.apache.log4j.Logger;
+```
 
-    ```java
-    static Logger logger = Logger.getLogger(UserDaoTest.class);
-    ```
+2、日志对象，参数为当前类的class
 
-3. 日志级别
+```java
+static Logger logger = Logger.getLogger(UserDaoTest.class);
+```
 
-    ```java
+3、日志级别
+
+```java
+logger.info("info:进入了testLog4j");
+logger.debug("debug:进入了testLog4j");
+logger.error("error:进入了testLog4j");
+```
+
+4、单元测试完整代码
+
+```java
+static final Logger logger = Logger.getLogger(TestUserMapper.class);
+
+@Test
+public void testLog4j() {
     logger.info("info:进入了testLog4j");
     logger.debug("debug:进入了testLog4j");
     logger.error("error:进入了testLog4j");
-    ```
+}
+```
 
-
-
-
-
--Dfile.encoding=utf-8
-
--ea

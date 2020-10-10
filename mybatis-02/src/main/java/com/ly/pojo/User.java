@@ -1,8 +1,11 @@
 package com.ly.pojo;
 
+import org.apache.ibatis.type.Alias;
+
 /**
  * 对应数据库表的实体类
  */
+@Alias("User")
 public class User {
     private int id;
     private String name;

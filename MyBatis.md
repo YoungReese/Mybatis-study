@@ -785,3 +785,136 @@ java.lang.ExceptionInInitializerError
 &serverTimezone=UTC
 
 Cause: com.mysql.jdbc.exceptions.jdbc4.MySQLNonTransientConnectionException: Public Key Retrieval is not allowed
+
+
+
+
+
+
+
+## 4 配置解析
+
+
+
+
+
+
+
+### 4.4 类型别名（typeAliases）
+
+**方式1**: 类型别名可为 Java 类型设置一个缩写名字。 它仅用于 XML 配置，意在降低冗余的全限定类名书写。例如：
+
+```xml
+<!--取别名，方式1-->
+<typeAliases>
+    <typeAlias alias="User" type="com.ly.pojo.User"/>
+</typeAliases>
+```
+
+当这样配置时，`User` 可以用在任何使用 `com.ly.pojo.User` 的地方。
+
+**方式2**: 也可以指定一个包名，MyBatis 会在包名下面搜索需要的 Java Bean，比如：
+
+```xml
+<typeAliases>
+  <package name="com.ly.pojo"/>
+</typeAliases>
+```
+
+每一个在包 `com.ly.pojo` 中的 Java Bean，在没有注解的情况下，会使用 Bean 的首字母小写的非限定类名来作为它的别名。 比如 `com.ly.pojo.User` 的别名为 `user`；若有注解，则别名为其注解值。见下面的例子：
+
+```java
+@Alias("User")
+public class User {
+    ...
+}
+```
+
+**经过测试，在使用的时候，默认情况下，使用User还是可以正常运行，充分测试后，发现大小写不敏感，不过建议还是规范化！**
+
+
+
+### 4.5 设置（settings）
+
+这是 MyBatis 中极为重要的调整设置，它们会改变 MyBatis 的运行时行为。 设置项较多，着重记住以下三个！
+
+![image-20201010092313130](MyBatis.assets/image-20201010092313130.png)
+
+![image-20201010092518944](MyBatis.assets/image-20201010092518944.png)
+
+
+
+### 4.6 其他配置
+
+- [typeHandlers（类型处理器）](https://mybatis.org/mybatis-3/zh/configuration.html#typeHandlers)
+- [objectFactory（对象工厂）](https://mybatis.org/mybatis-3/zh/configuration.html#objectFactory)
+- [plugins（插件）](https://mybatis.org/mybatis-3/zh/configuration.html#plugins)
+    - mybatis-generator-core
+    - mybatis-plus
+    - 通用mapper
+
+
+
+### 4.7 映射器（mappers）
+
+MapperRegistry：注册绑定我们的Mapper文件
+
+既然 MyBatis 的行为已经由上述元素配置完了，我们现在就要来定义 SQL 映射语句了。 但首先，我们需要告诉 MyBatis 到哪里去找到这些语句。 在自动查找资源方面，Java 并没有提供一个很好的解决方案，所以最好的办法是直接告诉 MyBatis 到哪里去找映射文件。 你可以使用相对于类路径的资源引用，或完全限定资源定位符（包括 `file:///` 形式的 URL），或类名和包名等。
+
+官网介绍了四种方式，我们这里主要使用两种方式，并给出最推荐的使用方式！
+
+**方式1： 【推荐使用，文件位置可以随便放】**
+
+```xml
+<!--每一个Mapper.XML都需要在Mybatis核心配置文件中注册！-->
+<mappers>
+    <mapper resource="com/ly/dao/UserMapper.xml"/>
+</mappers>
+```
+
+
+
+**方式2：使用class文件绑定注册【需要注意文件名和文件位置】**
+
+```xml
+<!--每一个Mapper.XML都需要在Mybatis核心配置文件中注册！-->
+<mappers>
+    <mapper class="com.ly.dao.UserMapper"/>
+</mappers>
+```
+
+方式2注意点：
+
+- 接口和他的Mapper配置文件必须同名！
+- 接口和他的Mapper配置文件必须在同一个包下！
+
+
+
+**方式3：使用扫描包进行注入绑定【需要注意文件名和文件位置】**
+
+```xml
+<!--每一个Mapper.XML都需要在Mybatis核心配置文件中注册！-->
+<mappers>
+    <package name="com.ly.dao"/>
+</mappers>
+```
+
+方式3注意点：
+
+- 接口和他的Mapper配置文件必须同名！
+- 接口和他的Mapper配置文件必须在同一个包下！
+
+
+
+
+
+**方式4：使用完全限定资源定位符（URL）【不使用】**
+
+```xml
+<!-- 使用完全限定资源定位符（URL） -->
+<mappers>
+  <mapper url="file:///var/mappers/AuthorMapper.xml"/>
+  <mapper url="file:///var/mappers/BlogMapper.xml"/>
+  <mapper url="file:///var/mappers/PostMapper.xml"/>
+</mappers
+```

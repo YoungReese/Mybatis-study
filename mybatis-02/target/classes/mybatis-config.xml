@@ -8,6 +8,16 @@
     <!--引入外部properties配置文件-->
     <properties resource="db.properties"/>
 
+<!--    &lt;!&ndash;取别名，方式1&ndash;&gt;-->
+<!--    <typeAliases>-->
+<!--        <typeAlias alias="User" type="com.ly.pojo.User"/>-->
+<!--    </typeAliases>-->
+
+    <!--取别名，方式2-->
+    <typeAliases>
+        <package name="com.ly.pojo"/>
+    </typeAliases>
+
     <environments default="development">
         <environment id="development">
             <transactionManager type="JDBC"/>
@@ -24,8 +34,21 @@
     注意这里的路径不是点，而是斜杠
     <mapper resource="com/ly/dao/UserMapper.xml"/>
     -->
+<!--    &lt;!&ndash;注册方式1&ndash;&gt;-->
+<!--    <mappers>-->
+<!--        <mapper resource="com/ly/dao/UserMapper.xml"/>-->
+<!--    </mappers>-->
+
+<!--    &lt;!&ndash;注册方式2&ndash;&gt;-->
+<!--    <mappers>-->
+<!--        <mapper class="com.ly.dao.UserMapper"/>-->
+<!--    </mappers>-->
+
+    <!--注册方式3-->
     <mappers>
-        <mapper resource="com/ly/dao/UserMapper.xml"/>
+        <package name="com.ly.dao"/>
     </mappers>
+
+
 
 </configuration>

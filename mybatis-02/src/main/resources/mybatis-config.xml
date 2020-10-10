@@ -8,6 +8,16 @@
     <!--引入外部properties配置文件-->
     <properties resource="db.properties"/>
 
+<!--    &lt;!&ndash;取别名，方式1&ndash;&gt;-->
+<!--    <typeAliases>-->
+<!--        <typeAlias alias="User" type="com.ly.pojo.User"/>-->
+<!--    </typeAliases>-->
+
+    <!--取别名，方式2-->
+    <typeAliases>
+        <package name="com.ly.pojo"/>
+    </typeAliases>
+
     <environments default="development">
         <environment id="development">
             <transactionManager type="JDBC"/>
@@ -21,11 +31,25 @@
     </environments>
 
     <!--每一个Mapper.xml都需要在Mybatis核心配置文件中注册！
-    注意这里的路径不是点，而是斜杠
+    注意这里的resource路径不是点，而是斜杠
     <mapper resource="com/ly/dao/UserMapper.xml"/>
+    推荐方式1，方式2和3需要注意文件名和文件位置一致（就是接口和xml配置文件名字一致，在同一路径下）
     -->
+    <!--注册方式1，推荐-->
     <mappers>
         <mapper resource="com/ly/dao/UserMapper.xml"/>
     </mappers>
+
+<!--    &lt;!&ndash;注册方式2&ndash;&gt;-->
+<!--    <mappers>-->
+<!--        <mapper class="com.ly.dao.UserMapper"/>-->
+<!--    </mappers>-->
+
+<!--    &lt;!&ndash;注册方式3&ndash;&gt;-->
+<!--    <mappers>-->
+<!--        <package name="com.ly.dao"/>-->
+<!--    </mappers>-->
+
+
 
 </configuration>

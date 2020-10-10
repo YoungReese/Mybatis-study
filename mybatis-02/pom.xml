@@ -32,7 +32,22 @@
                 <filtering>false</filtering>
             </resource>
         </resources>
+
+        <!--加上以下配置解决：Try-with-resources are not supported at language level '5’错误。-->
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+
+
     </build>
+
 
 
 </project>

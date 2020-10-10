@@ -56,15 +56,17 @@ public class UserMapperTest {
     @Test
     public void testGetUserList() {
         // 获得SqlSession对象
-        SqlSession sqlSession = MybatisUtils.getSqlSession();
-        try {
+        // Try-with-resources are not supported at language level '5’错误。
+        // 在pom.xml的build标签加了使用jdk1.8的配置
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
             List<User> userList = mapper.getUserList();
             for (User user : userList) {
                 System.out.println(user);
             }
-        } finally {
-            sqlSession.close();
+            // First: The try-with-resources statement provides an automatic close at the end of its scope.
+            //Second: Flush is redundant before close.
+            sqlSession.close(); // Redundant 'close': close is not request, the reason is explained above
         }
     }
 

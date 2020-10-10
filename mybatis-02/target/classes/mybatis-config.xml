@@ -13,7 +13,7 @@
 <!--        <typeAlias alias="User" type="com.ly.pojo.User"/>-->
 <!--    </typeAliases>-->
 
-    <!--取别名，方式2-->
+    <!--取别名，方式2，配合注解-->
     <typeAliases>
         <package name="com.ly.pojo"/>
     </typeAliases>

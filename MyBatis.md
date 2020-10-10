@@ -1060,3 +1060,218 @@ try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
 }
 ```
 
+
+
+
+
+## 5 ResultMap结果映射
+
+**【问题：数据库字段与实体类的字段名字不一致】**
+
+1 、数据库字段
+
+<img src="/Users/11117846/Desktop/study-code/mybatis/MyBatis-study/MyBatis.assets/image-20201010144116541.png" alt="image-20201010144116541" style="zoom:67%;" />
+
+2、复制mybatis-02项目到mybatis-03项目，修改实体类字段名称（**pwd改成了password**）
+
+```java
+@Alias("User")
+public class User {
+    private int id;
+    private String name;
+    private String password;
+    ······
+}
+```
+
+3、执行testGetUserList，出现如下问题，程序正常执行，但是password字段值为null
+
+<img src="/Users/11117846/Desktop/study-code/mybatis/MyBatis-study/MyBatis.assets/image-20201010143738499.png" alt="image-20201010143738499" style="zoom: 50%;" />
+
+
+
+4、解决方法
+
+【方法1：取别名】
+
+```xml
+<!--查询语句，原来的写法select * from mybatis.user;  当前写法如下所示-->
+<select id="getUserList" resultType="User">
+    select id, name, pwd as password from mybatis.user;
+</select>
+```
+
+结果如下：
+
+<img src="/Users/11117846/Desktop/study-code/mybatis/MyBatis-study/MyBatis.assets/image-20201010145224269.png" alt="image-20201010145224269" style="zoom:50%;" />
+
+**【方法2：使用ResultMap进行映射】【推荐方法】**
+
+**ResultMap的官网解读：**`resultMap` 元素是 MyBatis 中最重要最强大的元素。它可以让你从 90% 的 JDBC `ResultSets` 数据提取代码中解放出来，并在一些情形下允许你进行一些 JDBC 不支持的操作。实际上，在为一些比如连接的复杂语句编写映射代码的时候，一份 `resultMap` 能够代替实现同等功能的数千行代码。ResultMap 的设计思想是，对简单的语句做到零配置，对于复杂一点的语句，只需要描述语句之间的关系就行了。
+
+之前你已经见过简单映射语句的示例，它们没有显式指定 `resultMap`。比如：
+
+```xml
+<select id="selectUsers" resultType="map">
+  select id, username, hashedPassword
+  from some_table
+  where id = #{id}
+</select>
+
+```
+
+基于此，增加结果集映射和改造查询语句如下：
+
+```xml
+<!--结果集映射-->
+<resultMap id="UserMap" type="User">
+    <!--column数据库中的字段，property实体类中的属性-->
+    <result column="id" property="id"/>
+    <result column="name" property="name"/>
+    <result column="pwd" property="password"/>
+</resultMap>
+
+<!--查询语句，原来的返回值resultType="User"，现在resultMap="UserMap"-->
+<select id="getUserList" resultMap="UserMap">
+    select * from mybatis.user;
+</select>
+```
+
+结果如下：
+
+<img src="/Users/11117846/Desktop/study-code/mybatis/MyBatis-study/MyBatis.assets/image-20201010150519292.png" alt="image-20201010150519292" style="zoom:50%;" />
+
+
+
+**小结：**
+
+- `resultMap` 元素是 MyBatis 中最重要最强大的元素
+- ResultMap 的设计思想是，对于简单的语句根本不需要配置显式的结果映射，而对于复杂一点的语句只需要描述它们的关系就行了。
+- `ResultMap` 最优秀的地方在于，虽然你已经对它相当了解了，但是根本就不需要显式地用到他们。
+- 如果世界总是这么简单就好了。
+
+
+
+
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ly.dao.UserMapper">
+
+<!--    &lt;!&ndash;结果集映射&ndash;&gt;-->
+<!--    <resultMap id="UserMap" type="User">-->
+<!--        &lt;!&ndash;column数据库中的字段，property实体类中的属性&ndash;&gt;-->
+<!--        <result column="id" property="id"/>-->
+<!--        <result column="name" property="name"/>-->
+<!--        <result column="pwd" property="password"/>-->
+<!--    </resultMap>-->
+
+    <select id="getUserLike" resultMap="User">
+        select * from mybatis.user where name like #{arg};
+    </select>
+
+    <insert id="addUserByMap" parameterType="map">
+        insert into mybatis.user (id, name, pwd) values (#{userId}, #{userName}, #{password});
+    </insert>
+
+<!--    &lt;!&ndash;查询语句，原来的返回值resultType="User"，现在resultMap="UserMap"&ndash;&gt;-->
+<!--    <select id="getUserList" resultMap="UserMap">-->
+<!--        select * from mybatis.user;-->
+<!--    </select>-->
+
+    <!--查询语句，原来的写法select * from mybatis.user;  当前写法如下所示-->
+    <select id="getUserList" resultType="User">
+        select * from mybatis.user;
+    </select>
+
+    <select id="getUserById" parameterType="int" resultMap="User">
+        select * from mybatis.user where id = #{id};
+    </select>
+
+    <insert id="addUser" parameterType="User">
+        insert into mybatis.user (id, name, pwd) values (#{id}, #{name}, #{pwd});
+    </insert>
+
+    <update id="updateUser" parameterType="User">
+        update mybatis.user set name = #{name}, pwd = #{pwd} where id = #{id};
+    </update>
+
+    <delete id="deleteUser" parameterType="int">
+        delete from mybatis.user where id = #{id};
+    </delete>
+
+
+</mapper>
+```
+
+
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ly.dao.UserMapper">
+
+    <!--结果集映射-->
+    <resultMap id="UserMap" type="User">
+        <!--column数据库中的字段，property实体类中的属性-->
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="pwd" property="password"/>
+    </resultMap>
+
+    <!--    <resultMap id="UserMap" type="User">-->
+    <!--        &lt;!&ndash;column数据库中的字段，property实体类中的属性&ndash;&gt;-->
+    <!--        <result column="id" property="id"/>-->
+    <!--        <result column="name" property="name"/>-->
+    <!--        <result column="pwd" property="password"/>-->
+    <!--    </resultMap>-->
+
+    <select id="getUserLike" resultMap="UserMap">
+        select * from mybatis.user where name like #{arg};
+    </select>
+
+    <insert id="addUserByMap" parameterType="map">
+        insert into mybatis.user (id, name, pwd) values (#{userId}, #{userName}, #{password});
+    </insert>
+
+    <!--查询语句，原来的返回值resultType="User"，现在resultMap="UserMap"-->
+    <select id="getUserList" resultMap="UserMap">
+        select * from mybatis.user;
+    </select>
+
+    <select id="getUserById" parameterType="int" resultMap="UserMap">
+        select * from mybatis.user where id = #{id};
+    </select>
+
+    <insert id="addUser" parameterType="UserMap">
+        insert into mybatis.user (id, name, pwd) values (#{id}, #{name}, #{password});
+    </insert>
+
+    <update id="updateUser" parameterType="User">
+        update mybatis.user set name = #{name}, pwd = #{pwd} where id = #{id};
+    </update>
+
+    <delete id="deleteUser" parameterType="int">
+        delete from mybatis.user where id = #{id};
+    </delete>
+
+
+</mapper>
+```
+
+
+
+
+
+
+
+
+
+6 

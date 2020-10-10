@@ -10,9 +10,11 @@ import java.util.Map;
 
 /**
  * liyang 2020-10-10
- * 测试封装好的MybatisUtils生成sqlSession，然后进行数据库操作
+ * 测试ResultMap，解决数据库查询字段与实体类属性字段不同名问题
+ *
+ * User中pwd改成password之后，使用ResultMap
  */
-public class UserMapperTest {
+public class TestUserMapper {
 
     @Test
     public void testGetUserLike() {
@@ -37,8 +39,8 @@ public class UserMapperTest {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
 
             Map<String, Object> map = new HashMap<String, Object>();
-            map.put("userId", "5");
-            map.put("userName", "赵六");
+            map.put("userId", "6");
+            map.put("userName", "钱七");
             map.put("password", "123456");
 
             int res = mapper.addUserByMap(map);
@@ -55,18 +57,12 @@ public class UserMapperTest {
 
     @Test
     public void testGetUserList() {
-        // 获得SqlSession对象
-        // Try-with-resources are not supported at language level '5’错误。
-        // 在pom.xml的build标签加了使用jdk1.8的配置
         try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
             List<User> userList = mapper.getUserList();
             for (User user : userList) {
                 System.out.println(user);
             }
-            // First: The try-with-resources statement provides an automatic close at the end of its scope.
-            //Second: Flush is redundant before close.
-            sqlSession.close(); // Redundant 'close': close is not request, the reason is explained above
         }
     }
 
@@ -90,15 +86,14 @@ public class UserMapperTest {
         SqlSession sqlSession = MybatisUtils.getSqlSession();
         try {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
-            int res = mapper.addUser(new User(10, "王五", "12345678"));
+            int res = mapper.addUser(new User(9, "孙八", "12345678"));
             if (res > 0) {
                 System.out.println("插入成功");
                 sqlSession.commit();
             }
-            System.out.println(res);
         } catch (Exception e) {
             System.out.println("插入失败，插入的id(主键)可能已经存在！");
-//            e.printStackTrace();
+            // e.printStackTrace();
         } finally {
             sqlSession.close();
         }
@@ -117,7 +112,6 @@ public class UserMapperTest {
             } else {
                 System.out.println("更新失败");
             }
-            System.out.println(res);
         } finally {
             sqlSession.close();
         }
@@ -129,17 +123,18 @@ public class UserMapperTest {
         SqlSession sqlSession = MybatisUtils.getSqlSession();
         try {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
-            int res = mapper.deleteUser(8);
+            int res = mapper.deleteUser(7);
             if (res > 0) {
                 System.out.println("删除成功");
                 sqlSession.commit();
             } else {
                 System.out.println("删除失败");
             }
-            System.out.println(res); // 成功返回1
         } finally {
             sqlSession.close();
         }
     }
 
 }
+
+

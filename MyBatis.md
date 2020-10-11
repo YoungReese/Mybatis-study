@@ -1403,3 +1403,58 @@ public void testLog4j() {
 }
 ```
 
+
+
+
+
+## 7 分页
+
+7.1 使用Limit分页
+
+语法：
+
+```sql
+select * from user limit startIndex, pageSize; # [startIndex, startIndex + pageSize) 左闭右开
+```
+
+
+
+在mybatis中的实现方法
+
+1、UserMapper接口
+
+```java
+// 实现分页
+List<User> getUserByLimit(Map<String, Integer> map);
+```
+
+2、UserMapper.xml
+
+```xml
+<!--实现分页-->
+<select id="getUserByLimit" parameterType="map" resultMap="UserMap">
+    select * from mybatis.user limit #{startIndex}, #{pageSize};
+</select>
+```
+
+3、测试
+
+```java
+@Test
+public void testGetUserByLimit() {
+    SqlSession sqlSession = MybatisUtils.getSqlSession();
+    try {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        Map<String, Integer> map = new HashMap<>();
+        map.put("startIndex", 2);
+        map.put("pageSize", 2);
+        List<User> userList = mapper.getUserByLimit(map);
+        for (User user : userList) {
+            System.out.println(user);
+        }
+    } finally {
+        sqlSession.close();
+    }
+}
+```
+

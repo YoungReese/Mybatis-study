@@ -148,6 +148,26 @@ public class TestUserMapper {
         logger.error("error:进入了testLog4j");
     }
 
+    @Test
+    public void testGetUserByLimit() {
+        SqlSession sqlSession = MybatisUtils.getSqlSession();
+        try {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+
+            Map<String, Integer> map = new HashMap<>();
+            map.put("startIndex", 2);
+            map.put("pageSize", 2);
+
+            List<User> userList = mapper.getUserByLimit(map);
+            for (User user : userList) {
+                System.out.println(user);
+            }
+        } finally {
+            sqlSession.close();
+        }
+    }
+
+
 }
 
 

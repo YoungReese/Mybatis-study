@@ -32,4 +32,8 @@ public interface UserMapper {
 
     // 删除一个用户
     int deleteUser(int id);
+
+    // 实现分页
+    List<User> getUserByLimit(Map<String, Integer> map);
+
 }

@@ -14,6 +14,7 @@
         <module>mybatis-02</module>
         <module>mybatis-03</module>
         <module>mybatis-04</module>
+        <module>mybatis-05</module>
     </modules>
 
     <!--导入依赖-->
@@ -40,12 +41,13 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/log4j/log4j -->
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
-        </dependency>
+<!--        &lt;!&ndash;log4j只在mybatis-04中使用，因此将依赖放入了他所在项目的pom.xml中了&ndash;&gt;-->
+<!--        &lt;!&ndash; https://mvnrepository.com/artifact/log4j/log4j &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>log4j</groupId>-->
+<!--            <artifactId>log4j</artifactId>-->
+<!--            <version>1.2.17</version>-->
+<!--        </dependency>-->
 
     </dependencies>
 

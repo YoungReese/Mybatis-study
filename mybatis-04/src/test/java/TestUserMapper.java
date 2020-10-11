@@ -170,9 +170,9 @@ public class TestUserMapper {
 
     @Test
     public void testGetUserByRowBounds() {
-        try (SqlSession sqlSession = MybatisUtils.getSqlSession();) {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
             //RowBounds实现
-            RowBounds rowBounds = new RowBounds(1, 2);
+            RowBounds rowBounds = new RowBounds(1, 3);
             //通过Java代码层面实现分页，使用全限定名
             List<User> userList = sqlSession.selectList("com.ly.dao.UserMapper.getUserByRowBounds",null, rowBounds);
             for (User user: userList) {

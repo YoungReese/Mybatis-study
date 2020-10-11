@@ -509,7 +509,7 @@ SSL协议提供服务主要：
 package com.ly.dao;
 
 import com.ly.pojo.User;
-import com.ly.utils.MybatisUtils;
+import com.ly.com.ly.utils.MybatisUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Test;
 
@@ -1064,6 +1064,21 @@ try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
 
 
 
+### 4.9 对命名空间的一点补充
+
+在之前版本的 MyBatis 中，**命名空间（Namespaces）**的作用并不大，是可选的。 但现在，随着命名空间越发重要，你必须指定命名空间。
+
+命名空间的作用有两个，一个是利用更长的全限定名来将不同的语句隔离开来，同时也实现了你上面见到的接口绑定。就算你觉得暂时用不到接口绑定，你也应该遵循这里的规定，以防哪天你改变了主意。 长远来看，只要将命名空间置于合适的 Java 包命名空间之中，你的代码会变得更加整洁，也有利于你更方便地使用 MyBatis。
+
+**命名解析：**为了减少输入量，MyBatis 对所有具有名称的配置元素（包括语句，结果映射，缓存等）使用了如下的命名解析规则。
+
+-   全限定名（比如 “com.mypackage.MyMapper.selectAllThings）将被直接用于查找及使用。
+-   短名称（比如 “selectAllThings”）如果全局唯一也可以作为一个单独的引用。 如果不唯一，有两个或两个以上的相同名称（比如 “com.foo.selectAllThings” 和 “com.bar.selectAllThings”），那么使用时就会产生“短名称不唯一”的错误，这种情况下就必须使用全限定名。
+
+
+
+
+
 ## 5 ResultMap结果映射
 
 **【问题：数据库字段与实体类的字段名字不一致】**
@@ -1485,7 +1500,7 @@ List<User> getUserByRowBounds();
 ```java
 @Test
 public void testGetUserByRowBounds() {
-    try (SqlSession sqlSession = MybatisUtils.getSqlSession();) {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
         //RowBounds实现
         RowBounds rowBounds = new RowBounds(1, 2);
         //通过Java代码层面实现分页，使用全限定名
@@ -1530,6 +1545,161 @@ https://github.com/pagehelper/Mybatis-PageHelper
 
 
 ## 8 使用注解开发
+
+
+
+### 8.1 面向接口编程
+
+\- 大家之前都学过面向对象编程，也学习过接口，但在真正的开发中，很多时候我们会选择面向接口编程
+\- **根本原因 :  解耦 , 可拓展 , 提高复用 , 分层开发中 , 上层不用管具体的实现 , 大家都遵守共同的标准 , 使得开发变得容易 , 规范性更好**
+\- 在一个面向对象的系统中，系统的各种功能是由许许多多的不同对象协作完成的。在这种情况下，各个对象内部是如何实现自己的,对系统设计人员来讲就不那么重要了；
+\- 而各个对象之间的协作关系则成为系统设计的关键。小到不同类之间的通信，大到各模块之间的交互，在系统设计之初都是要着重考虑的，这也是系统设计的主要工作内容。面向接口编程就是指按照这种思想来编程。
+
+
+
+**关于接口的理解**
+
+\- 接口从更深层次的理解，应是定义（规范，约束）与实现（名实分离的原则）的分离。
+\- 接口的本身反映了系统设计人员对系统的抽象理解。
+\- 接口应有两类：
+  \- 第一类是对一个个体的抽象，它可对应为一个抽象体(abstract class)；
+  \- 第二类是对一个个体某一方面的抽象，即形成一个抽象面（interface）；
+\- 一个体有可能有多个抽象面。抽象体与抽象面是有区别的。
+
+
+
+**三个面向区别**
+
+\- 面向对象是指，我们考虑问题时，以对象为单位，考虑它的属性及方法 .
+\- 面向过程是指，我们考虑问题时，以一个具体的流程（事务过程）为单位，考虑它的实现 .
+\- 接口设计与非接口设计是针对复用技术而言的，与面向对象（过程）不是一个问题.更多的体现就是对系统整体的架构
+
+### 8.2 使用注解开发
+
+【官方文档】
+
+对于像 BlogMapper 这样的映射器类来说，还有另一种方法来完成语句映射。 它们映射的语句可以不用 XML 来配置，而可以使用 Java 注解来配置。比如，上面的 XML 示例可以被替换成如下的配置：
+
+```java
+package org.mybatis.example;
+public interface BlogMapper {
+  @Select("SELECT * FROM blog WHERE id = #{id}")
+  Blog selectBlog(int id);
+}
+```
+
+**使用注解来映射简单语句会使代码显得更加简洁，但对于稍微复杂一点的语句，Java 注解不仅力不从心，还会让你本就复杂的 SQL 语句更加混乱不堪。 因此，如果你需要做一些很复杂的操作，最好用 XML 来映射语句。**
+
+选择何种方式来配置映射，以及认为是否应该要统一映射语句定义的形式，完全取决于你和你的团队。 换句话说，永远不要拘泥于一种方式，你可以很轻松的在基于注解和 XML 的语句映射方式间自由移植和切换。
+
+1、注解在接口上实现
+
+```java
+@Select("select * from user")
+List<User> getUsers();
+```
+
+2、需要再核心配置文件中绑定接口！
+
+```xml
+<!--绑定接口-->
+<mappers>
+    <mapper class="com.kuang.dao.UserMapper"/>
+</mappers>
+```
+
+3、测试
+
+```java
+@Test
+public void testGetUsers() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        //通过Java代码层面实现分页，使用全限定名
+        List<User> users = mapper.getUsers();
+        for (User user: users) {
+            System.out.println(user);
+        }
+    }
+}
+```
+
+
+
+
+
+本质：反射机制实现
+
+底层：动态代理！
+
+ ![1569898830704](MyBatis.assets/1569898830704.png)
+
+
+
+**Mybatis详细的执行流程！**
+
+![1569898830704](MyBatis.assets/Temp.png)
+
+
+
+
+
+### 8.3、CRUD
+
+我们可以在工具类创建的时候实现自动提交事务！
+
+```java
+public static SqlSession  getSqlSession(){
+    return sqlSessionFactory.openSession(true);
+}
+```
+
+
+
+编写接口，增加注解
+
+```java
+public interface UserMapper {
+
+    @Select("select * from user")
+    List<User> getUsers();
+
+    // 方法存在多个参数，所有的参数前面必须加上 @Param("id")注解
+    @Select("select * from user where id = #{id}")
+    User getUserByID(@Param("id") int id);
+
+
+    @Insert("insert into user(id,name,pwd) values (#{id},#{name},#{password})")
+    int addUser(User user);
+
+    
+    @Update("update user set name=#{name},pwd=#{password} where id = #{id}")
+    int updateUser(User user);
+
+    
+    @Delete("delete from user where id = #{uid}")
+    int deleteUser(@Param("uid") int id);
+}
+```
+
+
+
+测试类
+
+【注意：我们必须要讲接口注册绑定到我们的核心配置文件中！】
+
+
+
+**关于@Param() 注解**
+
+- 基本类型的参数或者String类型，需要加上
+- 引用类型不需要加
+- 如果只有一个基本类型的话，可以忽略，但是建议大家都加上！
+- 我们在SQL中引用的就是我们这里的 @Param() 中设定的属性名！
+
+
+
+**#{}     ${} 区别**
 
 
 

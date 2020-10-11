@@ -1636,7 +1636,7 @@ public void testGetUsers() {
 
 
 
-**Mybatis详细的执行流程！**
+**MyBatis详细的执行流程！**
 
 ![1569898830704](MyBatis.assets/Temp.png)
 
@@ -1644,9 +1644,9 @@ public void testGetUsers() {
 
 
 
-### 8.3、CRUD
+### 8.3 CRUD
 
-我们可以在工具类创建的时候实现自动提交事务！
+我们可以在工具类创建的时候实现自动提交事务！一般开发中最好不要开启，因为这样程序不报错，事务直接提交，数据库中出现意想不到的数据，可能会污染数据库！
 
 ```java
 public static SqlSession  getSqlSession(){
@@ -1660,23 +1660,20 @@ public static SqlSession  getSqlSession(){
 
 ```java
 public interface UserMapper {
-
     @Select("select * from user")
     List<User> getUsers();
 
-    // 方法存在多个参数，所有的参数前面必须加上 @Param("id")注解
+    // 方法存在多个参数，所有的参数前面必须加上 @Param("id")注解，引用类型不需要
     @Select("select * from user where id = #{id}")
-    User getUserByID(@Param("id") int id);
+    User getUserById(@Param("id") int id);
 
-
-    @Insert("insert into user(id,name,pwd) values (#{id},#{name},#{password})")
+    @Insert("insert into user(id, name, pwd) values (#{id}, #{name}, #{pwd})")
     int addUser(User user);
 
-    
-    @Update("update user set name=#{name},pwd=#{password} where id = #{id}")
+    @Update("update user set name=#{name}, pwd=#{password} where id = #{id}")
     int updateUser(User user);
 
-    
+    // 注意：取值的uid从注解限定的那个名字取，相当于一个形参
     @Delete("delete from user where id = #{uid}")
     int deleteUser(@Param("uid") int id);
 }
@@ -1687,6 +1684,66 @@ public interface UserMapper {
 测试类
 
 【注意：我们必须要讲接口注册绑定到我们的核心配置文件中！】
+
+```java
+public class TestUserMapper {
+
+    @Test
+    public void testGetUsers() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+            List<User> users = mapper.getUsers();
+            for (User user : users) {
+                System.out.println(user);
+            }
+        }
+    }
+
+
+    @Test
+    public void testGetUserById() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+            User user = mapper.getUserById(1);
+            System.out.println(user);
+        }
+    }
+
+    @Test
+    public void testAddUser() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+            int res = mapper.addUser(new User(7, "Jet brain", "12345678"));
+            if (res > 0) System.out.println("插入成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testUpdateUser() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+            int res = mapper.updateUser(new User(7, "Jet Brain", "123456"));
+            if (res > 0) System.out.println("更新成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testDeleteUser() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+            int res = mapper.deleteUser(7);
+            if (res > 0) System.out.println("删除成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+```
 
 
 
@@ -1699,7 +1756,68 @@ public interface UserMapper {
 
 
 
-**#{}     ${} 区别**
+### [ {} 和 ${}区别 ]
+
+#{}在引用时，如果发现目标是一个字符串，则会将其值作为一个字符串拼接在sql上,即拼接时自动包裹引号
+${}在引用时，即使发现目标是一个字符串，也不会作为字符串处理，拼接在sql时不会自动包裹引号
+例如：
+所以通常情况下，使用#{}
+
+```sql
+insert into user values (null,#{name},55); --> insert into user values (null,'fff',55);
+insert into user values (null,${name},55); --> insert into user values (null,fff,55);//sql语句错误
+```
+
+而如果需要引用的是一个列名，使用${}
+
+```sql
+select * from user order by #{cname}; --> select * from user order by 'age';//sql语句错误
+select * from user order by ${cname}; --> select * from user order by age;
+```
+
+说明：
+
+1.  `#`  将传入的数据都当成一个字符串，会对自动传入的数据加一个双引号。如：order by #{user_id}，如果传入的值是 name , 那么解析成sql时的值为order by “name”, 如果传入的值是id，则解析成的sql为order by “id”.
+2.  `$`  将传入的数据直接显示生成在sql中。如：order by ${user_id}，如果传入的值是name, 那么解析成sql时的值为order by name, 如果传入的值是id，则解析成的sql为order by id.
+
+综上所述,`${}`方式会引发**SQL注入**的问题、同时也会影响SQL语句的预编译，所以从安全性和性能的角度出发，能使用`#{}`的情况下就不要使用 `${}`。
+
+`${}` 在什么情况下使用呢？
+
+有时候可能需要直接插入一个不做任何修改的字符串到SQL语句中。这时候应该使用${}语法。
+
+比如，动态SQL中的字段名，如：ORDER BY ${columnName}
 
 
 
+**Sql注入举例**
+
+#{}方式
+
+```mysql
+<select id="queryMetaList" resultType="Map">
+    select * from name where name = #{name}
+</select>
+```
+
+```sql
+# 调用方法，参数name=张三 or 1
+select * from name where name = #{name} --> select * from name where name = “张三 or 1”
+```
+
+说明：参数异常，什么都查不到
+
+${}方式
+
+```sql
+<select id="queryMetaList" resultType="Map">
+    select * from name where name = ${name}
+</select>
+```
+
+```sql
+# 调用方法，参数name=张三 or 1
+select * from name where name = #{name} --> select * from name where name = 张三 or 1
+```
+
+说明：or 连接了一个永远为true的条件，因此where会把数据库所有信息返回回来造成数据泄露

@@ -44,11 +44,16 @@
         delete from mybatis.user where id = #{id};
     </delete>
 
-    <!--实现分页-->
+    <!--实现分页1：Limit-->
     <select id="getUserByLimit" parameterType="map" resultMap="UserMap">
         select * from mybatis.user limit #{startIndex}, #{pageSize};
     </select>
 
+
+    <!--实现分页2：RowBounds-->
+    <select id="getUserByRowBounds" resultMap="UserMap">
+        select * from mybatis.user;
+    </select>
 
 
 </mapper>

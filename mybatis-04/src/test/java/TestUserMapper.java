@@ -1,6 +1,7 @@
 import com.ly.dao.UserMapper;
 import com.ly.pojo.User;
 import com.ly.utils.MybatisUtils;
+import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Test;
 
@@ -167,7 +168,18 @@ public class TestUserMapper {
         }
     }
 
-
+    @Test
+    public void testGetUserByRowBounds() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession();) {
+            //RowBounds实现
+            RowBounds rowBounds = new RowBounds(1, 2);
+            //通过Java代码层面实现分页，使用全限定名
+            List<User> userList = sqlSession.selectList("com.ly.dao.UserMapper.getUserByRowBounds",null, rowBounds);
+            for (User user: userList) {
+                System.out.println(user);
+            }
+        }
+    }
 }
 
 

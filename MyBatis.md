@@ -1409,7 +1409,7 @@ public void testLog4j() {
 
 ## 7 分页
 
-7.1 使用Limit分页
+### 7.1 使用Limit分页
 
 语法：
 
@@ -1457,4 +1457,79 @@ public void testGetUserByLimit() {
     }
 }
 ```
+
+
+
+### 7.2 RowBounds分页
+
+不再使用SQL实现分页
+
+1、UserMapper接口
+
+```java
+//分页2
+List<User> getUserByRowBounds();
+```
+
+2、UserMapper.xml
+
+```xml
+<!--分页2-->
+<select id="getUserByRowBounds" resultMap="UserMap">
+    select * from  mybatis.user
+</select>
+```
+
+3、测试
+
+```java
+@Test
+public void testGetUserByRowBounds() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession();) {
+        //RowBounds实现
+        RowBounds rowBounds = new RowBounds(1, 2);
+        //通过Java代码层面实现分页，使用全限定名
+        List<User> userList = sqlSession.selectList("com.ly.dao.UserMapper.getUserByRowBounds",null, rowBounds);
+        for (User user: userList) {
+            System.out.println(user);
+        }
+    }
+}
+```
+
+
+
+**limit与rowBounds的区别**
+
+*   **limit在sql层面实现分页。**
+
+*   **rowbounds在代码层实现分页。**
+
+
+
+### 7.3、分页插件
+
+![1569896603103](MyBatis.assets/1569896603103.png)
+
+了解即可，万一 以后公司的架构师，说要使用，你需要知道它是什么东西！
+
+[使用方法](https://github.com/pagehelper/Mybatis-PageHelper/blob/master/wikis/zh/HowToUse.md)
+
+注：MyBatis PageHelper官网打不开，上面随便找了一个如何使用的链接
+
+https://pagehelper.github.io/    -- 内网打不开
+
+https://github.com/pagehelper/Mybatis-PageHelper
+
+
+
+
+
+
+
+
+
+## 8 使用注解开发
+
+
 

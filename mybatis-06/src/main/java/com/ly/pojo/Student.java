@@ -11,8 +11,6 @@ import lombok.NoArgsConstructor;
 public class Student {
     private int id;
     private String name;
-    private int tid;
-
-    // 学生需要关联一个老师
+    // 学生需要关联一个老师（通过tid与数据库中的teacher进行关联）
     private Teacher teacher;
 }

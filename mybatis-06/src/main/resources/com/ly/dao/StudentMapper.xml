@@ -5,4 +5,46 @@
 
 <mapper namespace="com.ly.dao.StudentMapper">
 
+<!--    <select id="getStudents" resultMap="StudentTeacher">-->
+<!--        select * from student;-->
+<!--    </select>-->
+
+    <!--思路1:
+        1. 查询所有的学生信息
+        2. 根据查询出来的学生的tid，寻找对应的老师！（子查询）
+    -->
+    <select id="getStudents" resultMap="StudentTeacher">
+        select * from student;
+    </select>
+
+    <resultMap id="StudentTeacher" type="com.ly.pojo.Student">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <!--复杂的属性，我们需要单独处理   对象： association 集合： collection-->
+        <association property="teacher" column="tid" javaType="com.ly.pojo.Teacher" select="getTeacher"/>
+    </resultMap>
+
+    <select id="getTeacher" resultType="com.ly.pojo.Teacher">
+        select * from teacher where id = #{id};
+    </select>
+
+
+    <!--==============================推荐=================================-->
+    <!--思路2:按照结果嵌套处理，联表查询（此处时内联接，外联接分为左外联接和右外联接），过滤结果-->
+    <select id="getStudents02" resultMap="StudentTeacher02">
+        select student.id sid, student.name sname, teacher.name tname
+        from student, teacher
+        where student.tid = teacher.id;
+    </select>
+
+    <resultMap id="StudentTeacher02" type="com.ly.pojo.Student">
+        <result property="id" column="sid"/>
+        <result property="name" column="sname"/>
+        <!--复杂的属性，我们需要单独处理  对象: association   集合: collection-->
+        <association property="teacher" javaType="com.ly.pojo.Teacher">
+            <result property="name" column="tname"/>
+        </association>
+    </resultMap>
+
+
 </mapper>

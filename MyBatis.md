@@ -1902,7 +1902,7 @@ lombok支持的所有注解
 
 ## 10 多对一处理
 
-多对一：
+### 1 多对一关系
 
 ![1569909163944](MyBatis.assets/1569909163944.png)
 
@@ -1912,7 +1912,7 @@ lombok支持的所有注解
 
 ![1569909422471](MyBatis.assets/1569909422471.png)
 
-SQL：
+### 2 建相应的SQL测试用表及需求
 
 ```sql
 CREATE TABLE `teacher` (
@@ -1943,7 +1943,17 @@ INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('5', '小王', '1');
 
 
 
-### 测试环境搭建
+需求：查出学生表信息，学生对应的老师使用老师表的实际名字
+
+**多对一的sql语句（这是内联接查询）**
+
+```sql
+select student.id, student.name, teacher.name from student, teacher where student.tid = teacher.id;
+```
+
+以上是原生sql语句，那如何在Java和mybatis环境下实现？
+
+### 3 测试环境搭建
 
 1. 导入lombok
 2. 新建实体类 Teacher，Student
@@ -1954,61 +1964,98 @@ INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('5', '小王', '1');
 
 
 
-
-
-
-
-### 按照查询嵌套处理
+### 4 按照查询嵌套处理（方法1：子查询方式，效率较低，不推荐）
 
 ```xml
-<!--
-    思路:
+<!--思路1:
         1. 查询所有的学生信息
-        2. 根据查询出来的学生的tid，寻找对应的老师！  子查询
+        2. 根据查询出来的学生的tid，寻找对应的老师！（子查询）
     -->
-
-<select id="getStudent" resultMap="StudentTeacher">
-    select * from student
+<select id="getStudents" resultMap="StudentTeacher">
+    select * from student;
 </select>
 
-<resultMap id="StudentTeacher" type="Student">
+<resultMap id="StudentTeacher" type="com.ly.pojo.Student">
     <result property="id" column="id"/>
     <result property="name" column="name"/>
-    <!--复杂的属性，我们需要单独处理 对象： association 集合： collection -->
-    <association property="teacher" column="tid" javaType="Teacher" select="getTeacher"/>
+    <!--复杂的属性，我们需要单独处理   对象： association 集合： collection-->
+    <association property="teacher" column="tid" javaType="com.ly.pojo.Teacher" select="getTeacher"/>
 </resultMap>
 
-<select id="getTeacher" resultType="Teacher">
-    select * from teacher where id = #{id}
+<select id="getTeacher" resultType="com.ly.pojo.Teacher">
+    select * from teacher where id = #{id};
 </select>
-
 ```
 
+测试案例
+
+```java
+@Test
+public void testGetStudents() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        StudentMapper mapper = sqlSession.getMapper(StudentMapper.class);
+        List<Student> stuList = mapper.getStudents();
+        for (Student student: stuList) System.out.println(student);
+    }
+}
+```
+
+结果
+
+<img src="MyBatis.assets/image-20201013005027401.png" alt="image-20201013005027401" style="zoom: 50%;" />
 
 
-### 按照结果嵌套处理
+
+### 5 按照结果嵌套处理（联表查询，结果对应和过滤，效率较高，推荐）
 
 ```xml
-<!--按照结果嵌套处理-->
-<select id="getStudent2" resultMap="StudentTeacher2">
-    select s.id sid,s.name sname,t.name tname
-    from student s,teacher t
-    where s.tid = t.id;
+<!--==============================推荐=================================-->
+<!--思路2:按照结果嵌套处理，联表查询（此处时内联接，外联接分为左外联接和右外联接），过滤结果-->
+<select id="getStudents02" resultMap="StudentTeacher02">
+    select student.id sid, student.name sname, teacher.name tname
+    from student, teacher
+    where student.tid = teacher.id;
 </select>
 
-<resultMap id="StudentTeacher2" type="Student">
+<resultMap id="StudentTeacher02" type="com.ly.pojo.Student">
     <result property="id" column="sid"/>
     <result property="name" column="sname"/>
-    <association property="teacher" javaType="Teacher">
+    <!--复杂的属性，我们需要单独处理  对象: association   集合: collection-->
+    <association property="teacher" javaType="com.ly.pojo.Teacher">
         <result property="name" column="tname"/>
     </association>
 </resultMap>
 ```
 
+测试案例
+
+```java
+@Test
+public void testGetStudents02() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        StudentMapper mapper = sqlSession.getMapper(StudentMapper.class);
+        List<Student> stuList = mapper.getStudents();
+        for (Student student: stuList) System.out.println(student);
+    }
+}
+```
+
+结果
+
+<img src="MyBatis.assets/image-20201013005208244.png" alt="image-20201013005208244" style="zoom:50%;" />
 
 
-回顾Mysql 多对一查询方式：
+
+**注意：4和5中的xml文件没有使用别名，因此需要使用的是全限定名！**
+
+
+
+### 6 回顾Mysql 多对一查询方式：
 
 - 子查询
 - 联表查询
+
+
+
+## 11 一对多的处理
 

@@ -1283,9 +1283,9 @@ public class User {
 
 
 
-## 6、日志
+## 6 日志
 
-### 6.1、日志工厂
+### 6.1 日志工厂
 
 如果一个数据库操作，出现了异常，我们需要排错。日志就是最好的助手！
 
@@ -1821,3 +1821,190 @@ select * from name where name = #{name} --> select * from name where name = 张�
 ```
 
 说明：or 连接了一个永远为true的条件，因此where会把数据库所有信息返回回来造成数据泄露
+
+
+
+## 9 Lombok
+
+【[官网](https://projectlombok.org/)】
+
+```java
+Project Lombok is a java library that automatically plugs into your editor and build tools, spicing up your java.
+Never write another getter or equals method again, with one annotation your class has a fully featured builder, Automate your logging variables, and much more.
+```
+
+- java library
+- plugs
+- build tools
+- with one annotation your class
+
+
+
+使用步骤：
+
+1、在IDEA中安装Lombok插件！
+
+2、在项目中导入lombok的jar包
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>1.18.14</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+3、在实体类上加注解即可！
+
+重点掌握的注解
+
+```java
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+```
+
+lombok支持的所有注解
+
+```java
+@Getter and @Setter
+@FieldNameConstants
+@ToString
+@EqualsAndHashCode
+@AllArgsConstructor, @RequiredArgsConstructor and @NoArgsConstructor
+@Log, @Log4j, @Log4j2, @Slf4j, @XSlf4j, @CommonsLog, @JBossLog, @Flogger
+@Data
+@Builder
+@Singular
+@Delegate
+@Value
+@Accessors
+@Wither
+@SneakyThrows
+```
+
+说明：
+
+```
+@Data：无参构造，get、set、tostring、hashcode，equals
+@AllArgsConstructor
+@NoArgsConstructor
+@EqualsAndHashCode
+@ToString
+@Getter
+```
+
+
+
+
+
+## 10 多对一处理
+
+多对一：
+
+![1569909163944](MyBatis.assets/1569909163944.png)
+
+- 多个学生，对应一个老师
+- 对于学生这边而言，  **关联** ..  多个学生，关联一个老师  【多对一】
+- 对于老师而言， **集合** ， 一个老师，有很多学生 【一对多】
+
+![1569909422471](MyBatis.assets/1569909422471.png)
+
+SQL：
+
+```sql
+CREATE TABLE `teacher` (
+  `id` INT(10) NOT NULL,
+  `name` VARCHAR(30) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=INNODB DEFAULT CHARSET=utf8
+
+INSERT INTO teacher(`id`, `name`) VALUES (1, '秦老师'); 
+
+CREATE TABLE `student` (
+  `id` INT(10) NOT NULL,
+  `name` VARCHAR(30) DEFAULT NULL,
+  `tid` INT(10) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fktid` (`tid`),
+  CONSTRAINT `fktid` FOREIGN KEY (`tid`) REFERENCES `teacher` (`id`)
+) ENGINE=INNODB DEFAULT CHARSET=utf8
+
+
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('1', '小明', '1'); 
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('2', '小红', '1'); 
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('3', '小张', '1'); 
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('4', '小李', '1'); 
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('5', '小王', '1');
+
+```
+
+
+
+### 测试环境搭建
+
+1. 导入lombok
+2. 新建实体类 Teacher，Student
+3. 建立Mapper接口
+4. 建立Mapper.XML文件
+5. 在核心配置文件中绑定注册我们的Mapper接口或者文件！【方式很多，随心选】
+6. 测试查询是否能够成功！
+
+
+
+### 按照查询嵌套处理
+
+```xml
+<!--
+    思路:
+        1. 查询所有的学生信息
+        2. 根据查询出来的学生的tid，寻找对应的老师！  子查询
+    -->
+
+<select id="getStudent" resultMap="StudentTeacher">
+    select * from student
+</select>
+
+<resultMap id="StudentTeacher" type="Student">
+    <result property="id" column="id"/>
+    <result property="name" column="name"/>
+    <!--复杂的属性，我们需要单独处理 对象： association 集合： collection -->
+    <association property="teacher" column="tid" javaType="Teacher" select="getTeacher"/>
+</resultMap>
+
+<select id="getTeacher" resultType="Teacher">
+    select * from teacher where id = #{id}
+</select>
+
+```
+
+
+
+### 按照结果嵌套处理
+
+```xml
+<!--按照结果嵌套处理-->
+<select id="getStudent2" resultMap="StudentTeacher2">
+    select s.id sid,s.name sname,t.name tname
+    from student s,teacher t
+    where s.tid = t.id;
+</select>
+
+<resultMap id="StudentTeacher2" type="Student">
+    <result property="id" column="sid"/>
+    <result property="name" column="sname"/>
+    <association property="teacher" javaType="Teacher">
+        <result property="name" column="tname"/>
+    </association>
+</resultMap>
+```
+
+
+
+回顾Mysql 多对一查询方式：
+
+- 子查询
+- 联表查询
+

@@ -1919,9 +1919,9 @@ CREATE TABLE `teacher` (
   `id` INT(10) NOT NULL,
   `name` VARCHAR(30) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=INNODB DEFAULT CHARSET=utf8
+) ENGINE=INNODB DEFAULT CHARSET=utf8;
 
-INSERT INTO teacher(`id`, `name`) VALUES (1, '秦老师'); 
+INSERT INTO teacher(`id`, `name`) VALUES (1, 'teacher li'); 
 
 CREATE TABLE `student` (
   `id` INT(10) NOT NULL,
@@ -1930,7 +1930,7 @@ CREATE TABLE `student` (
   PRIMARY KEY (`id`),
   KEY `fktid` (`tid`),
   CONSTRAINT `fktid` FOREIGN KEY (`tid`) REFERENCES `teacher` (`id`)
-) ENGINE=INNODB DEFAULT CHARSET=utf8
+) ENGINE=INNODB DEFAULT CHARSET=utf8;
 
 
 INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('1', '小明', '1'); 
@@ -1951,6 +1951,10 @@ INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('5', '小王', '1');
 4. 建立Mapper.XML文件
 5. 在核心配置文件中绑定注册我们的Mapper接口或者文件！【方式很多，随心选】
 6. 测试查询是否能够成功！
+
+
+
+
 
 
 

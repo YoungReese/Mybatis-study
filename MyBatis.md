@@ -2391,3 +2391,247 @@ fine too！
 
 
 
+
+
+## 12、动态 SQL
+
+==**什么是动态SQL：动态SQL就是指根据不同的条件生成不同的SQL语句**==
+
+利用动态 SQL 这一特性可以彻底摆脱这种痛苦。
+
+动态 SQL 元素和 JSTL 或基于类似 XML 的文本处理器相似。在 MyBatis 之前的版本中，有很多元素需要花时间了解。MyBatis 3 大大精简了元素种类，现在只需学习原来一半的元素便可。MyBatis 采用功能强大的基于 OGNL 的表达式来淘汰其它大部分元素。
+
+```xml
+if
+choose (when, otherwise)
+trim (where, set)
+foreach
+```
+
+
+
+### 搭建环境
+
+```sql
+CREATE TABLE `blog`
+(
+    `id`          varchar(50)  NOT NULL COMMENT '博客id',
+    `title`       varchar(100) NOT NULL COMMENT '博客标题',
+    `author`      varchar(30)  NOT NULL COMMENT '博客作者',
+    `create_time` datetime     NOT NULL COMMENT '创建时间',
+    `views`       int(30)      NOT NULL COMMENT '浏览量'
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8;
+```
+
+
+
+```sql
+INSERT INTO `blog` (`id`, `title`, `author`, `create_time`, `views`)
+VALUES ('1', 'spring', 'liyang', now(), '100');
+
+INSERT INTO `blog` (`id`, `title`, `author`, `create_time`, `views`)
+VALUES ('2', 'mybatis', 'liyang', now(), '100'), ('3', 'spring-mvc', 'liyang', now(), '100'),
+       ('4', 'spring-boot', 'liyang', now(), '100'), ('5', 'spring-cloud', 'liyang', now(), '100');
+```
+
+
+
+
+
+
+
+
+
+创建一个基础工程
+
+1、导包
+
+2、编写配置文件
+
+3、编写实体类
+
+```java
+@Data
+public class Blog {
+    private String id;
+    private String title;
+    private String author;
+    private Date createTime;
+    private int views; 
+}
+```
+
+4、编写实体类对应Mapper接口 和 Mapper.XML文件
+
+
+
+|          设置名          |                             描述                             |     有效值      | 默认值 |
+| :----------------------: | :----------------------------------------------------------: | :-------------: | :----: |
+| mapUnderscoreToCamelCase | 是否开启驼峰命名自动映射，即从经典数据库列名 A_COLUMN 映射到经典 Java 属性名 aColumn。 | true  \|  false | false  |
+
+
+
+### IF
+
+```xml
+<select id="queryBlogIF" parameterType="map" resultType="blog">
+    select * from mybatis.blog where 1=1
+    <if test="title != null">
+        and title = #{title}
+    </if>
+    <if test="author != null">
+        and author = #{author}
+    </if>
+</select>
+```
+
+### choose (when, otherwise)
+
+```xml
+    <select id="queryBlogChoose" parameterType="map" resultType="blog">
+        select * from mybatis.blog
+        <where>
+            <choose>
+                <when test="title != null">
+                    title = #{title}
+                </when>
+                <when test="author != null">
+                    and author = #{author}
+                </when>
+                <otherwise>
+                    and views = #{views}
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+```
+
+
+
+### trim (where,set)
+
+```xml
+select * from mybatis.blog
+<where>
+    <if test="title != null">
+        title = #{title}
+    </if>
+    <if test="author != null">
+        and author = #{author}
+    </if>
+</where>
+```
+
+```xml
+<update id="updateBlog" parameterType="map">
+    update mybatis.blog
+    <set>
+        <if test="title != null">
+            title = #{title},
+        </if>
+        <if test="author != null">
+            author = #{author}
+        </if>
+    </set>
+    where id = #{id}
+</update>
+
+```
+
+==**所谓的动态SQL，本质还是SQL语句 ， 只是我们可以在SQL层面，去执行一个逻辑代码**==
+
+if
+
+where ， set  ， choose ，when
+
+
+
+
+
+### SQL片段
+
+有的时候，我们可能会将一些功能的部分抽取出来，方便复用！
+
+1. 使用SQL标签抽取公共的部分
+
+    ```xml
+    <sql id="if-title-author">
+        <if test="title != null">
+            title = #{title}
+        </if>
+        <if test="author != null">
+            and author = #{author}
+        </if>
+    </sql>
+    ```
+
+2. 在需要使用的地方使用Include标签引用即可
+
+    ```xml
+    <select id="queryBlogIF" parameterType="map" resultType="blog">
+        select * from mybatis.blog
+        <where>
+            <include refid="if-title-author"></include>
+        </where>
+    </select>
+    ```
+
+    
+
+注意事项：
+
+- 最好基于单表来定义SQL片段！
+- 不要存在where标签
+
+
+
+### Foreach
+
+```sql
+select * from user where 1=1 and 
+
+  <foreach item="id" collection="ids"
+      open="(" separator="or" close=")">
+        #{id}
+  </foreach>
+
+(id=1 or id=2 or id=3)
+
+```
+
+![1569979229205](MyBatis.assets/1569979229205.png)
+
+![1569979339190](MyBatis.assets/1569979339190.png)
+
+```xml
+<!--
+        select * from mybatis.blog where 1=1 and (id=1 or id = 2 or id=3)
+
+        我们现在传递一个万能的map ， 这map中可以存在一个集合！
+-->
+<select id="queryBlogForeach" parameterType="map" resultType="blog">
+    select * from mybatis.blog
+
+    <where>
+        <foreach collection="ids" item="id" open="and (" close=")" separator="or">
+            id = #{id}
+        </foreach>
+    </where>
+
+</select>
+
+```
+
+
+
+==动态SQL就是在拼接SQL语句，我们只要保证SQL的正确性，按照SQL的格式，去排列组合就可以了==
+
+建议：
+
+- 现在Mysql中写出完整的SQL,再对应的去修改成为我们的动态SQL实现通用即可！
+
+
+
+
+

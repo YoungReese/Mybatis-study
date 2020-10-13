@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
 public interface BlogMapper {
     // 增加
@@ -21,5 +22,8 @@ public interface BlogMapper {
     // 删除
     @Delete("delete from blog where title = #{title};")
     int deleteBlogByTitle(@Param("title") String title);
+
+    // 条件查询
+    List<Blog> queryBlogsIF(Map<String, String> map);
 
 }

@@ -755,10 +755,10 @@ MyBatis对JDBC操作数据库做了一系列的优化：
 
 
 ```java
- catch (Exception e) {
-            System.out.println("addUser插入失败");
-            e.printStackTrace();
-        }
+catch (Exception e) {
+    System.out.println("addUser插入失败");
+    e.printStackTrace();
+}
 ```
 
 
@@ -2410,7 +2410,9 @@ foreach
 
 
 
-### 搭建环境
+### 12.1 搭建环境
+
+创建一个表
 
 ```sql
 CREATE TABLE `blog`
@@ -2424,7 +2426,7 @@ CREATE TABLE `blog`
   DEFAULT CHARSET = utf8;
 ```
 
-
+插入相关数据
 
 ```sql
 INSERT INTO `blog` (`id`, `title`, `author`, `create_time`, `views`)
@@ -2435,56 +2437,275 @@ VALUES ('2', 'mybatis', 'liyang', now(), '100'), ('3', 'spring-mvc', 'liyang', n
        ('4', 'spring-boot', 'liyang', now(), '100'), ('5', 'spring-cloud', 'liyang', now(), '100');
 ```
 
-
-
-
-
-
-
-
-
-创建一个基础工程
+创建一个基础工程（几乎不变的内容不在赘述）
 
 1、导包
 
-2、编写配置文件
+2、编写配置文件（mybatis-config.xml）
+
+```xml
+<!--只列出了主要部分-->
+<settings>
+    <!--日志工厂的实现方式，STDOUT_LOGGING不需要导包-->
+    <setting name="logImpl" value="STDOUT_LOGGING"/>
+    <!--开启驼峰命名自动映射-->
+    <setting name="mapUnderscoreToCamelCase" value="true"/>
+</settings>
+
+<!--绑定接口-->
+<mappers>
+    <mapper class="com.ly.dao.BlogMapper"/>
+</mappers>
+```
 
 3、编写实体类
 
 ```java
+package com.ly.pojo;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Blog {
     private String id;
     private String title;
     private String author;
-    private Date createTime;
-    private int views; 
+    private Date createTime; // 属性名与数据库字段名不一致，使用驼峰设置
+    private int views;
 }
 ```
 
-4、编写实体类对应Mapper接口 和 Mapper.XML文件
-
-
+为了保证数据库字段与实体类字段的一致性，使用以下属性来确保
 
 |          设置名          |                             描述                             |     有效值      | 默认值 |
 | :----------------------: | :----------------------------------------------------------: | :-------------: | :----: |
 | mapUnderscoreToCamelCase | 是否开启驼峰命名自动映射，即从经典数据库列名 A_COLUMN 映射到经典 Java 属性名 aColumn。 | true  \|  false | false  |
 
+4、编写实体类对应Mapper接口 和 Mapper.XML文件
 
+```java
+package com.ly.dao;
 
-### IF
+import com.ly.pojo.Blog;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+
+public interface BlogMapper {
+    // 增加
+    int addBlog(Blog blog);
+
+    // 查找
+    @Select("select * from blog;")
+    List<Blog> getBlogs();
+
+//    // 更新
+//    int updateBlog(int id);
+
+    // 删除
+    @Delete("delete from blog where title = #{title};")
+    int deleteBlogByTitle(@Param("title") String title);
+}
+```
 
 ```xml
-<select id="queryBlogIF" parameterType="map" resultType="blog">
-    select * from mybatis.blog where 1=1
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ly.dao.BlogMapper">
+
+    <insert id="addBlog" parameterType="com.ly.pojo.Blog">
+        insert into blog (id, title, author, create_time, views)
+        values(#{id}, #{title}, #{author}, #{createTime}, #{views});
+    </insert>
+
+</mapper>
+```
+
+测试
+
+```java
+import com.ly.dao.BlogMapper;
+import com.ly.pojo.Blog;
+import com.ly.utils.IdUtils;
+import com.ly.utils.MybatisUtils;
+import org.apache.ibatis.session.SqlSession;
+import org.junit.Test;
+
+import java.util.Date;
+import java.util.List;
+
+public class TestBlogMapper {
+
+    @Test
+    public void testAddBlog() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+            int res = mapper.addBlog(new Blog(IdUtils.getId(), "jdbc", "liyang", new Date(), 100));
+            if (res > 0) System.out.println("插入成功！");
+        }
+    }
+
+    @Test
+    public void testGetBlogs() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+            List<Blog> blogList = mapper.getBlogs();
+            for (Blog blog : blogList) {
+                System.out.println(blog);
+            }
+        }
+    }
+
+    @Test
+    public void testDeleteBlogByTitle() {
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+            int res = mapper.deleteBlogByTitle("jdbc");
+            if (res > 0) System.out.println("删除成功！");
+            else System.out.println("删除失败！");
+        }
+    }
+}
+```
+
+这里使用了一个工具类，生成id方式改为uuid方式，但是自己封装了一下，将uuid中的'-'去掉了。
+
+```java
+package com.ly.utils;
+
+import java.util.UUID;
+
+/**
+ * liyang 2020-10-13
+ *
+ * 生成id的工具类
+ * 内部封装了uuid，改造了一下uuid输出格式
+ */
+public class IdUtils {
+    public static String getId() {
+        return UUID.randomUUID().toString().replaceAll("-", "");
+    }
+}
+```
+
+```java
+import com.ly.utils.IdUtils;
+import org.junit.Test;
+
+public class TestIdUtils {
+    @Test
+    public void testGetId() {
+        System.out.println(IdUtils.getId());
+    }
+}
+```
+
+
+
+
+
+
+
+### 12.2 IF
+
+【官网说明】
+
+使用动态 SQL 最常见情景是根据条件包含 where 子句的一部分。比如：
+
+```sql
+<select id="findActiveBlogWithTitleLike"
+     resultType="Blog">
+  SELECT * FROM BLOG
+  WHERE state = ‘ACTIVE’
+  <if test="title != null">
+    AND title like #{title}
+  </if>
+</select>
+```
+
+这条语句提供了可选的查找文本功能。如果不传入 “title”，那么所有处于 “ACTIVE” 状态的 BLOG 都会返回；如果传入了 “title” 参数，那么就会对 “title” 一列进行模糊查找并返回对应的 BLOG 结果（细心的读者可能会发现，“title” 的参数值需要包含查找掩码或通配符字符）。
+
+如果希望通过 “title” 和 “author” 两个参数进行可选搜索该怎么办呢？首先，我想先将语句名称修改成更名副其实的名称；接下来，只需要加入另一个条件即可。(这里的author是一个对象，不是基本类型)
+
+```sql
+<select id="findActiveBlogLike"
+     resultType="Blog">
+  SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+  <if test="title != null">
+    AND title like #{title}
+  </if>
+  <if test="author != null and author.name != null">
+    AND author_name like #{author.name}
+  </if>
+</select>
+```
+
+
+
+自己的业务（这里的author是基本类型String）
+
+```java
+// BlogMapper.java
+
+// 条件查询
+List<Blog> queryBlogsIF(Map<String, String> map);
+```
+
+```xml
+<!--BlogMapper.xml-->
+
+<select id="queryBlogsIF" parameterType="map" resultType="com.ly.pojo.Blog">
+    select * from blog where 1 = 1
     <if test="title != null">
-        and title = #{title}
+        and title like #{title}
     </if>
     <if test="author != null">
         and author = #{author}
     </if>
 </select>
 ```
+
+```java
+// TestBlogMapper.java
+
+// 条件查询: List<Blog> queryBlogsIF(Map<String, String> map);
+@Test
+public void testQueryBlogsIF() {
+    Map<String, String> map = new HashMap<>();
+    map.put("title", "spring%");
+    map.put("author", "liyang");
+
+    try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+        List<Blog> blogList = mapper.queryBlogsIF(map);
+        for (Blog blog : blogList) {
+            System.out.println(blog);
+        }
+    }
+
+}
+```
+
+结果：
+
+<img src="MyBatis.assets/image-20201014015512774.png" alt="image-20201014015512774" style="zoom:50%;" />
+
+
+
+
+
+
 
 ### choose (when, otherwise)
 

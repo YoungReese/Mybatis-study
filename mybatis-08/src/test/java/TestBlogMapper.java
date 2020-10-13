@@ -2,11 +2,14 @@ import com.ly.dao.BlogMapper;
 import com.ly.pojo.Blog;
 import com.ly.utils.IdUtils;
 import com.ly.utils.MybatisUtils;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Test;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TestBlogMapper {
 
@@ -34,9 +37,28 @@ public class TestBlogMapper {
     public void testDeleteBlogByTitle() {
         try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
             BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
-            int res = mapper.deleteBlogByTitle("jdbc-blog");
+            int res = mapper.deleteBlogByTitle("jdbc");
             if (res > 0) System.out.println("删除成功！");
+            else System.out.println("删除失败！");
         }
+    }
+
+
+    // 条件查询: List<Blog> queryBlogsIF(Map<String, String> map);
+    @Test
+    public void testQueryBlogsIF() {
+        Map<String, String> map = new HashMap<>();
+        map.put("title", "spring%");
+        map.put("author", "liyang");
+
+        try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+            List<Blog> blogList = mapper.queryBlogsIF(map);
+            for (Blog blog : blogList) {
+                System.out.println(blog);
+            }
+        }
+
     }
 
 }

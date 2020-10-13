@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ly.dao.TeacherMapper">
+
+    <!--============================联表查询【推荐】=================================-->
+    <select id="getTeacherById" resultMap="TeacherStudent">
+        select teacher.id tid, teacher.name tname, student.id sid, student.name sname
+        from teacher, student
+        where student.tid = #{tid};
+    </select>
+
+    <resultMap id="TeacherStudent" type="com.ly.pojo.Teacher">
+        <result property="id" column="tid"/>
+        <result property="name" column="tname"/>
+        <collection property="students" ofType="com.ly.pojo.Student">
+            <result property="id" column="sid"/>
+            <result property="name" column="sname"/>
+            <result property="tid" column="tid"/>
+        </collection>
+    </resultMap>
+
+
+    <!--============================子查询方式=================================-->
+    <select id="getTeacherById02" resultMap="TeacherStudent02">
+        select * from teacher where id = #{tid};
+    </select>
+    <resultMap id="TeacherStudent02" type="com.ly.pojo.Teacher">
+        <collection property="students" ofType="com.ly.pojo.Student" select="getStudentByTeacherId" column="id"/>
+    </resultMap>
+    <select id="getStudentByTeacherId" resultType="com.ly.pojo.Student">
+        select * from student where tid = #{tid};
+    </select>
+
+</mapper>

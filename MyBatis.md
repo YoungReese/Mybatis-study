@@ -1955,12 +1955,100 @@ select student.id, student.name, teacher.name from student, teacher where studen
 
 ### 3 测试环境搭建
 
-1. 导入lombok
-2. 新建实体类 Teacher，Student
-3. 建立Mapper接口
-4. 建立Mapper.XML文件
-5. 在核心配置文件中绑定注册我们的Mapper接口或者文件！【方式很多，随心选】
-6. 测试查询是否能够成功！
+1、导入lombok
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>1.18.14</version>
+        <scope>provided</scope>
+    </dependency>
+</dependencies>
+```
+
+2、新建实体类Student、Teacher
+
+```java
+package com.ly.pojo;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Student {
+    private int id;
+    private String name;
+    // 学生需要关联一个老师（通过tid与数据库中的teacher进行关联）
+    private Teacher teacher;
+}
+```
+
+```java
+package com.ly.pojo;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Teacher {
+    private int id;
+    private String name;
+}
+```
+
+3、建立Mapper接口
+
+```java
+package com.ly.dao;
+
+import com.ly.pojo.Teacher;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+public interface TeacherMapper {
+    @Select("select * from teacher where id = #{tid}")
+    Teacher getTeacher(@Param("tid") int id);
+}
+```
+
+```java
+package com.ly.dao;
+
+import com.ly.pojo.Student;
+
+import java.util.List;
+
+public interface StudentMapper {
+    // 查询出所有学生的信息，以及对应的老师的信息
+    // select student.id, student.name, teacher.name from student, teacher where student.tid = teacher.id;
+    List<Student> getStudents();
+    List<Student> getStudents02();
+}
+```
+
+4、建立Mapper.XML文件
+
+见下文
+
+5、在核心配置文件中绑定注册我们的Mapper接口或者文件！【方式很多，随心选】
+
+```xml
+<!--绑定接口-->
+<mappers>
+    <mapper class="com.ly.dao.TeacherMapper"/>
+    <mapper class="com.ly.dao.StudentMapper"/>
+</mappers>
+```
+
+6、测试查询是否能够成功！
 
 
 
@@ -2058,4 +2146,248 @@ public void testGetStudents02() {
 
 
 ## 11 一对多的处理
+
+比如：一个老师拥有多个学生！
+
+对于老师而言，就是一对多的关系!
+
+sql语句
+
+```sql
+select teacher.id tid, teacher.name tname, student.id sid, student.name sname
+from teacher, student
+where student.tid = 1;
+```
+
+sql查询结果
+
+<img src="MyBatis.assets/image-20201013110104513.png" alt="image-20201013110104513" style="zoom:50%;" />
+
+### 环境搭建
+
+基本和前文一致，这里列出一些显著区别
+
+**实体类**
+
+```java
+package com.ly.pojo;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Student {
+    private int id;
+    private String name;
+    private int tid;
+}
+```
+
+```java
+package com.ly.pojo;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Teacher {
+    private int id;
+    private String name;
+    //一个老师拥有多个学生
+    private List<Student> students;
+}
+```
+
+**Mapper接口**
+
+```java
+package com.ly.dao;
+
+public interface StudentMapper {
+}
+```
+
+```java
+package com.ly.dao;
+
+import com.ly.pojo.Teacher;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+
+public interface TeacherMapper {
+
+    @Select("select * from teacher;")
+    List<Teacher> getTeachers();
+
+    Teacher getTeacherById(@Param("tid") int id);
+    Teacher getTeacherById02(@Param("tid") int id);
+}
+
+```
+
+
+
+### 测试
+
+```java
+@Test
+public void testGetTeachers() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        TeacherMapper mapper = sqlSession.getMapper(TeacherMapper.class);
+        List<Teacher> teacherList = mapper.getTeachers();
+        System.out.println(teacherList);
+    }
+}
+```
+
+<img src="MyBatis.assets/image-20201013105827515.png" alt="image-20201013105827515" style="zoom:50%;" />
+
+很明显student显示不出来
+
+
+
+因此使用`getTeacherById`进行测试！
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ly.dao.StudentMapper">
+
+</mapper>
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ly.dao.TeacherMapper">
+
+    <!--============================联表查询【推荐】=================================-->
+    <select id="getTeacherById" resultMap="TeacherStudent">
+        select teacher.id tid, teacher.name tname, student.id sid, student.name sname
+        from teacher, student
+        where student.tid = #{tid};
+    </select>
+
+    <resultMap id="TeacherStudent" type="com.ly.pojo.Teacher">
+        <result property="id" column="tid"/>
+        <result property="name" column="tname"/>
+        <collection property="students" ofType="com.ly.pojo.Student">
+            <result property="id" column="sid"/>
+            <result property="name" column="sname"/>
+            <result property="tid" column="tid"/>
+        </collection>
+    </resultMap>
+
+</mapper>
+```
+
+```java
+@Test
+public void testGetTeacherById() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        TeacherMapper mapper = sqlSession.getMapper(TeacherMapper.class);
+        Teacher teacher = mapper.getTeacherById(1);
+        System.out.println(teacher);
+    }
+}
+```
+
+结果
+
+<img src="MyBatis.assets/image-20201013111617880.png" alt="image-20201013111617880" style="zoom:50%;" />
+
+fine！
+
+使用自查询方式，使用`getTeacherById02`进行测试！
+
+```xml
+<!--============================子查询方式=================================-->
+<select id="getTeacherById02" resultMap="TeacherStudent02">
+    select * from teacher where id = #{tid};
+</select>
+
+<resultMap id="TeacherStudent02" type="com.ly.pojo.Teacher">
+    <collection property="students" ofType="com.ly.pojo.Student" select="getStudentByTeacherId" column="id"/>
+</resultMap>
+
+<select id="getStudentByTeacherId" resultType="com.ly.pojo.Student">
+    select * from student where tid = #{tid};
+</select>
+```
+
+```java
+@Test
+public void testGetTeacherById02() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        TeacherMapper mapper = sqlSession.getMapper(TeacherMapper.class);
+        Teacher teacher = mapper.getTeacherById02(1);
+        System.out.println(teacher);
+    }
+}
+```
+
+
+
+结果
+
+<img src="MyBatis.assets/image-20201013113110662.png" alt="image-20201013113110662" style="zoom:50%;" />
+
+fine too！
+
+
+
+### 小结
+
+*   关联 - association   【多对一】
+
+*   集合 - collection   【一对多】
+
+*   javaType    &   ofType
+    *   JavaType  用来指定实体类中属性的类型，有时候不写，框架通过反射自己可以拿到
+    *   ofType  用来指定映射到List或者集合中的 pojo类型，泛型中的约束类型！
+
+
+
+注意点：
+
+- 保证SQL的可读性，尽量保证通俗易懂
+- 注意一对多和多对一中，属性名和字段的问题！
+- 如果问题不好排查错误，可以使用日志 ， 建议使用 Log4j
+
+
+
+**慢SQL       1s        1000s**      
+
+拓展
+
+- Mysql引擎
+- InnoDB底层原理
+- 索引
+- 索引优化！
+
+
+
+<img src="MyBatis.assets/image-20201013115026498.png" alt="image-20201013115026498" style="zoom:50%;" />
+
+[ResultMap官方说明](https://mybatis.org/mybatis-3/zh/sqlmap-xml.html#Result_Maps)
+
+
+
+
 

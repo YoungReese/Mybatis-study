@@ -2617,7 +2617,7 @@ public class TestIdUtils {
 
 
 
-### 12.2 IF
+### 12.2 if
 
 【官网说明】
 
@@ -2663,7 +2663,8 @@ List<Blog> queryBlogsIF(Map<String, String> map);
 ```
 
 ```xml
-<!--BlogMapper.xml-->
+<!--BlogMapper.xml-->   
+<!--一般来说，where使用<where><where/>标签，可以避免一些选择错误（如果1=1不加，直接加后面会多出一个and）-->
 
 <select id="queryBlogsIF" parameterType="map" resultType="com.ly.pojo.Blog">
     select * from blog where 1 = 1
@@ -2705,60 +2706,237 @@ public void testQueryBlogsIF() {
 
 
 
+### 12.3 choose (when, otherwise)
 
+**【官网说明】**
 
-### choose (when, otherwise)
+有时候，我们不想使用所有的条件，而只是想从多个条件中选择一个使用。针对这种情况，MyBatis 提供了 choose 元素，它有点像 Java 中的 switch 语句。
+
+还是上面的例子，但是策略变为：传入了 “title” 就按 “title” 查找，传入了 “author” 就按 “author” 查找的情形。若两者都没有传入，就返回标记为 featured 的 BLOG（这可能是管理员认为，与其返回大量的无意义随机 Blog，还不如返回一些由管理员精选的 Blog）。
 
 ```xml
-    <select id="queryBlogChoose" parameterType="map" resultType="blog">
-        select * from mybatis.blog
-        <where>
-            <choose>
-                <when test="title != null">
-                    title = #{title}
-                </when>
-                <when test="author != null">
-                    and author = #{author}
-                </when>
-                <otherwise>
-                    and views = #{views}
-                </otherwise>
-            </choose>
-        </where>
-    </select>
+<select id="findActiveBlogLike"
+     resultType="Blog">
+  SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+  <choose>
+    <when test="title != null">
+      AND title like #{title}
+    </when>
+    <when test="author != null and author.name != null">
+      AND author_name like #{author.name}
+    </when>
+    <otherwise>
+      AND featured = 1
+    </otherwise>
+  </choose>
+</select>
 ```
 
 
 
-### trim (where,set)
+[网上博客说明](https://www.yiibai.com/mybatis/mybatis_choose.html )
+
+有时候我们并不想应用所有的条件，而只是想从多个选项中选择一个。而使用if标签时，只要test中的表达式为 true，就会执行 if 标签中的条件。MyBatis 提供了 choose 元素。if标签是与(and)的关系，而 choose 是或(or)的关系。
+
+choose标签是按顺序判断其内部when标签中的test条件出否成立，如果有一个成立，则 choose 结束。当 choose 中所有 when 的条件都不满则时，则执行 otherwise 中的sql。类似于Java 的 switch 语句，choose 为 switch，when 为 case，otherwise 则为 default。
+
+
+
+自己的业务
+
+```java
+// List<Blog> queryBlogsChoose(Map map);
+List<Blog> queryBlogsChoose(Map map); // 这种写法也行
+```
 
 ```xml
-select * from mybatis.blog
-<where>
+<select id="queryBlogsChoose" parameterType="map" resultType="com.ly.pojo.Blog">
+    select * from blog
+    <where>
+        <choose>
+            <when test="title != null">
+                title like #{title}
+            </when>
+            <when test="author != null">
+                and author = #{author}
+            </when>
+            <otherwise> <!--当前otherwise及其条件可以可以省略，因为加了where标签-->
+                1 = 1
+            </otherwise>
+        </choose>
+    </where>
+</select>
+```
+
+```java
+// 条件查询: List<Blog> queryBlogsChoose(Map<String, String> map);
+@Test
+public void testQueryBlogsChoose() {
+    Map map = new HashMap();
+    map.put("title", "spring%");
+    map.put("author", "liyang");
+
+    try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+        List<Blog> blogList = mapper.queryBlogsChoose(map);
+        for (Blog blog : blogList) {
+            System.out.println(blog);
+        }
+    }
+}
+```
+
+<img src="MyBatis.assets/image-20201014112116777.png" alt="image-20201014112116777" style="zoom:50%;" />
+
+
+
+
+
+### 12.4 trim (where, set)
+
+【官网说明】
+
+前面几个例子已经方便地解决了一个臭名昭著的动态 SQL 问题。现在回到之前的 “if” 示例，这次我们将 “state = ‘ACTIVE’” 设置成动态条件，看看会发生什么。
+
+```xml
+<select id="findActiveBlogLike"
+        resultType="Blog">
+    SELECT * FROM BLOG
+    WHERE
+    <if test="state != null">
+        state = #{state}
+    </if>
     <if test="title != null">
-        title = #{title}
+        AND title like #{title}
     </if>
-    <if test="author != null">
-        and author = #{author}
+    <if test="author != null and author.name != null">
+        AND author_name like #{author.name}
     </if>
-</where>
+</select>
+```
+
+如果没有匹配的条件会怎么样？最终这条 SQL 会变成这样：
+
+```sql
+SELECT * FROM BLOG
+WHERE
+```
+
+这会导致查询失败。如果匹配的只是第二个条件又会怎样？这条 SQL 会是这样:
+
+```sql
+SELECT * FROM BLOG
+WHERE
+AND title like ‘someTitle’
+```
+
+这个查询也会失败。这个问题不能简单地用条件元素来解决。这个问题是如此的难以解决，以至于解决过的人不会再想碰到这种问题。
+
+MyBatis 有一个简单且适合大多数场景的解决办法。而在其他场景中，可以对其进行自定义以符合需求。而这，只需要一处简单的改动：
+
+```xml
+<select id="findActiveBlogLike"
+        resultType="Blog">
+    SELECT * FROM BLOG
+    <where>
+        <if test="state != null">
+            state = #{state}
+        </if>
+        <if test="title != null">
+            AND title like #{title}
+        </if>
+        <if test="author != null and author.name != null">
+            AND author_name like #{author.name}
+        </if>
+    </where>
+</select>
+```
+
+*where* 元素只会在子元素返回任何内容的情况下才插入 “WHERE” 子句。而且，若子句的开头为 “AND” 或 “OR”，*where* 元素也会将它们去除。
+
+如果 *where* 元素与你期望的不太一样，你也可以通过自定义 trim 元素来定制 *where* 元素的功能。比如，和 *where* 元素等价的自定义 trim 元素为：
+
+```xml
+<trim prefix="WHERE" prefixOverrides="AND |OR ">
+    ...
+</trim>
+```
+
+*prefixOverrides* 属性会忽略通过管道符分隔的文本序列（注意此例中的空格是必要的）。上述例子会移除所有 *prefixOverrides* 属性中指定的内容，并且插入 *prefix* 属性中指定的内容。
+
+用于动态更新语句的类似解决方案叫做 *set*。*set* 元素可以用于动态包含需要更新的列，忽略其它不更新的列。比如：
+
+```xml
+<update id="updateAuthorIfNecessary">
+    update Author
+    <set>
+        <if test="username != null">username=#{username},</if>
+        <if test="password != null">password=#{password},</if>
+        <if test="email != null">email=#{email},</if>
+        <if test="bio != null">bio=#{bio}</if>
+    </set>
+    where id=#{id}
+</update>
+```
+
+这个例子中，*set* 元素会动态地在行首插入 SET 关键字，并会删掉额外的逗号（这些逗号是在使用条件语句给列赋值时引入的）。
+
+来看看与 *set* 元素等价的自定义 *trim* 元素吧：
+
+```xml
+<trim prefix="SET" suffixOverrides=",">
+    ...
+</trim>
+```
+
+注意，我们覆盖了后缀值设置，并且自定义了前缀值。
+
+
+
+【个人业务】
+
+```java
+// int updateBlogById(Map map);
+int updateBlogById(Map map);
 ```
 
 ```xml
-<update id="updateBlog" parameterType="map">
-    update mybatis.blog
+<update id="updateBlogById" parameterType="map">
+    update blog
     <set>
         <if test="title != null">
             title = #{title},
         </if>
         <if test="author != null">
-            author = #{author}
+            author = #{author},
+        </if>
+        <if test="views != null">
+            views = #{views}
         </if>
     </set>
-    where id = #{id}
+    where id = #{id};
 </update>
-
 ```
+
+```java
+// 更新：int updateBlogById(Map map);
+@Test
+public void testUpdateBlogById() {
+    Map<String, String> map = new HashMap<>();
+    map.put("title", "spring5");
+    map.put("views", "999");
+    map.put("id", "1");
+    try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+        int res = mapper.updateBlogById(map);
+        if (res > 0) System.out.println("更新成功！");
+    }
+}
+```
+
+<img src="MyBatis.assets/image-20201014120535677.png" alt="image-20201014120535677" style="zoom:50%;" />
+
+
 
 ==**所谓的动态SQL，本质还是SQL语句 ， 只是我们可以在SQL层面，去执行一个逻辑代码**==
 
@@ -2851,6 +3029,249 @@ select * from user where 1=1 and
 建议：
 
 - 现在Mysql中写出完整的SQL,再对应的去修改成为我们的动态SQL实现通用即可！
+
+
+
+
+
+## 13、缓存 （了解）
+
+### 13.1、简介
+
+```
+查询  ：  连接数据库 ，耗资源！
+	一次查询的结果，给他暂存在一个可以直接取到的地方！--> 内存 ： 缓存
+	
+我们再次查询相同数据的时候，直接走缓存，就不用走数据库了
+```
+
+
+
+1. 什么是缓存 [ Cache ]？
+
+    - 存在内存中的临时数据。
+    - 将用户经常查询的数据放在缓存（内存）中，用户去查询数据就不用从磁盘上(关系型数据库数据文件)查询，从缓存中查询，从而提高查询效率，解决了高并发系统的性能问题。
+
+2. 为什么使用缓存？
+
+    - 减少和数据库的交互次数，减少系统开销，提高系统效率。
+
+3. 什么样的数据能使用缓存？
+
+    - 经常查询并且不经常改变的数据。【可以使用缓存】
+
+        
+
+### 13.2、Mybatis缓存
+
+- MyBatis包含一个非常强大的查询缓存特性，它可以非常方便地定制和配置缓存。缓存可以极大的提升查询效率。
+
+- MyBatis系统中默认定义了两级缓存：**一级缓存**和**二级缓存**
+
+    - 默认情况下，只有一级缓存开启。（SqlSession级别的缓存，也称为本地缓存）
+
+    - 二级缓存需要手动开启和配置，他是基于namespace级别的缓存。
+
+    - 为了提高扩展性，MyBatis定义了缓存接口Cache。我们可以通过实现Cache接口来自定义二级缓存
+
+        
+
+### 13.3、一级缓存
+
+- 一级缓存也叫本地缓存：  SqlSession
+    - 与数据库同一次会话期间查询到的数据会放在本地缓存中。
+    - 以后如果需要获取相同的数据，直接从缓存中拿，没必须再去查询数据库；
+
+
+
+测试步骤：
+
+1. 开启日志！
+2. 测试在一个Sesion中查询两次相同记录
+3. 查看日志输出
+
+![1569983650437](MyBatis.assets/1569983650437.png)
+
+
+
+缓存失效的情况：
+
+1. 查询不同的东西
+
+2. 增删改操作，可能会改变原来的数据，所以必定会刷新缓存！
+
+    ![1569983952321](MyBatis.assets/1569983952321.png)
+
+3. 查询不同的Mapper.xml
+
+4. 手动清理缓存！
+
+    ![1569984008824](MyBatis.assets/1569984008824.png)
+
+
+
+小结：一级缓存默认是开启的，只在一次SqlSession中有效，也就是拿到连接到关闭连接这个区间段！
+
+一级缓存就是一个Map。
+
+
+
+
+### 13.4、二级缓存
+
+- 二级缓存也叫全局缓存，一级缓存作用域太低了，所以诞生了二级缓存
+- 基于namespace级别的缓存，一个名称空间，对应一个二级缓存；
+- 工作机制
+    - 一个会话查询一条数据，这个数据就会被放在当前会话的一级缓存中；
+    - 如果当前会话关闭了，这个会话对应的一级缓存就没了；但是我们想要的是，会话关闭了，一级缓存中的数据被保存到二级缓存中；
+    - 新的会话查询信息，就可以从二级缓存中获取内容；
+    - 不同的mapper查出的数据会放在自己对应的缓存（map）中；
+
+
+
+步骤：
+
+1. 开启全局缓存
+
+    ```xml
+    <!--显示的开启全局缓存-->
+    <setting name="cacheEnabled" value="true"/>
+    ```
+
+2. 在要使用二级缓存的Mapper中开启
+
+    ```xml
+    <!--在当前Mapper.xml中使用二级缓存-->
+    <cache/>
+    ```
+
+    也可以自定义参数
+
+    ```xml
+    <!--在当前Mapper.xml中使用二级缓存-->
+    <cache  eviction="FIFO"
+           flushInterval="60000"
+           size="512"
+           readOnly="true"/>
+    ```
+
+3. 测试
+
+    1. 问题:我们需要将实体类序列化！否则就会报错！
+
+        ```
+        Caused by: java.io.NotSerializableException: com.kuang.pojo.User
+        ```
+
+
+
+小结：
+
+- 只要开启了二级缓存，在同一个Mapper下就有效
+- 所有的数据都会先放在一级缓存中；
+- 只有当会话提交，或者关闭的时候，才会提交到二级缓冲中！
+
+
+
+
+
+### 13.5、缓存原理
+
+![1569985541106](MyBatis.assets/1569985541106.png)
+
+
+
+### 13.6、自定义缓存-ehcache
+
+```xml
+Ehcache是一种广泛使用的开源Java分布式缓存。主要面向通用缓存
+```
+
+要在程序中使用ehcache，先要导包！
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.mybatis.caches/mybatis-ehcache -->
+<dependency>
+    <groupId>org.mybatis.caches</groupId>
+    <artifactId>mybatis-ehcache</artifactId>
+    <version>1.1.0</version>
+</dependency>
+```
+
+在mapper中指定使用我们的ehcache缓存实现！
+
+```xml
+<!--在当前Mapper.xml中使用二级缓存-->
+<cache type="org.mybatis.caches.ehcache.EhcacheCache"/>
+```
+
+ehcache.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="http://ehcache.org/ehcache.xsd"
+         updateCheck="false">
+    <!--
+       diskStore：为缓存路径，ehcache分为内存和磁盘两级，此属性定义磁盘的缓存位置。参数解释如下：
+       user.home – 用户主目录
+       user.dir  – 用户当前工作目录
+       java.io.tmpdir – 默认临时文件路径
+     -->
+    <diskStore path="./tmpdir/Tmp_EhCache"/>
+    
+    <defaultCache
+            eternal="false"
+            maxElementsInMemory="10000"
+            overflowToDisk="false"
+            diskPersistent="false"
+            timeToIdleSeconds="1800"
+            timeToLiveSeconds="259200"
+            memoryStoreEvictionPolicy="LRU"/>
+ 
+    <cache
+            name="cloud_user"
+            eternal="false"
+            maxElementsInMemory="5000"
+            overflowToDisk="false"
+            diskPersistent="false"
+            timeToIdleSeconds="1800"
+            timeToLiveSeconds="1800"
+            memoryStoreEvictionPolicy="LRU"/>
+    <!--
+       defaultCache：默认缓存策略，当ehcache找不到定义的缓存时，则使用这个缓存策略。只能定义一个。
+     -->
+    <!--
+      name:缓存名称。
+      maxElementsInMemory:缓存最大数目
+      maxElementsOnDisk：硬盘最大缓存个数。
+      eternal:对象是否永久有效，一但设置了，timeout将不起作用。
+      overflowToDisk:是否保存到磁盘，当系统当机时
+      timeToIdleSeconds:设置对象在失效前的允许闲置时间（单位：秒）。仅当eternal=false对象不是永久有效时使用，可选属性，默认值是0，也就是可闲置时间无穷大。
+      timeToLiveSeconds:设置对象在失效前允许存活时间（单位：秒）。最大时间介于创建时间和失效时间之间。仅当eternal=false对象不是永久有效时使用，默认是0.，也就是对象存活时间无穷大。
+      diskPersistent：是否缓存虚拟机重启期数据 Whether the disk store persists between restarts of the Virtual Machine. The default value is false.
+      diskSpoolBufferSizeMB：这个参数设置DiskStore（磁盘缓存）的缓存区大小。默认是30MB。每个Cache都应该有自己的一个缓冲区。
+      diskExpiryThreadIntervalSeconds：磁盘失效线程运行时间间隔，默认是120秒。
+      memoryStoreEvictionPolicy：当达到maxElementsInMemory限制时，Ehcache将会根据指定的策略去清理内存。默认策略是LRU（最近最少使用）。你可以设置为FIFO（先进先出）或是LFU（较少使用）。
+      clearOnFlush：内存数量最大时是否清除。
+      memoryStoreEvictionPolicy:可选策略有：LRU（最近最少使用，默认策略）、FIFO（先进先出）、LFU（最少访问次数）。
+      FIFO，first in first out，这个是大家最熟的，先进先出。
+      LFU， Less Frequently Used，就是上面例子中使用的策略，直白一点就是讲一直以来最少被使用的。如上面所讲，缓存的元素有一个hit属性，hit值最小的将会被清出缓存。
+      LRU，Least Recently Used，最近最少使用的，缓存的元素有一个时间戳，当缓存容量满了，而又需要腾出地方来缓存新的元素的时候，那么现有缓存元素中时间戳离当前时间最远的元素将被清出缓存。
+   -->
+
+</ehcache>
+
+```
+
+
+
+Redis数据库来做缓存！  K-V
+
+
+
+
+## 练习：29道练习题实战！
 
 
 

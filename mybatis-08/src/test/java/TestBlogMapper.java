@@ -58,7 +58,39 @@ public class TestBlogMapper {
                 System.out.println(blog);
             }
         }
-
     }
+
+
+    // 条件查询: List<Blog> queryBlogsChoose(Map<String, String> map);
+    @Test
+    public void testQueryBlogsChoose() {
+        Map<String, String> map = new HashMap<>();
+        map.put("title", "spring%");
+        map.put("author", "liyang");
+
+        try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+            List<Blog> blogList = mapper.queryBlogsChoose(map);
+            for (Blog blog : blogList) {
+                System.out.println(blog);
+            }
+        }
+    }
+
+    // 更新：int updateBlogById(Map map);
+    @Test
+    public void testUpdateBlogById() {
+        Map<String, String> map = new HashMap<>();
+        map.put("title", "spring5");
+        map.put("views", "999");
+        map.put("id", "1");
+        try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+            int res = mapper.updateBlogById(map);
+            if (res > 0) System.out.println("更新成功！");
+        }
+    }
+
+
 
 }

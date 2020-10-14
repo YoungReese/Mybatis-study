@@ -26,4 +26,10 @@ public interface BlogMapper {
     // 条件查询
     List<Blog> queryBlogsIF(Map<String, String> map);
 
+    // List<Blog> queryBlogsChoose(Map map);
+    List<Blog> queryBlogsChoose(Map<String, String> map);
+
+    // int updateBlogById(Map map);
+    int updateBlogById(Map<String, String> map);
+
 }

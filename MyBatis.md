@@ -2948,79 +2948,129 @@ where ， set  ， choose ，when
 
 
 
-### SQL片段
+### 12.5 动态SQL中的SQL片段
 
 有的时候，我们可能会将一些功能的部分抽取出来，方便复用！
 
-1. 使用SQL标签抽取公共的部分
+```xml
+<select id="queryBlogsIF" parameterType="map" resultType="com.ly.pojo.Blog">
+    select * from blog where 1 = 1
+    <if test="title != null">
+        and title like #{title}
+    </if>
+    <if test="author != null">
+        and author = #{author}
+    </if>
+</select>
+```
 
-    ```xml
-    <sql id="if-title-author">
-        <if test="title != null">
-            title = #{title}
-        </if>
-        <if test="author != null">
-            and author = #{author}
-        </if>
-    </sql>
-    ```
+如果中间if部分会大量重复使用，抽取如下：    
 
-2. 在需要使用的地方使用Include标签引用即可
+1、使用SQL标签抽取公共的部分
 
-    ```xml
-    <select id="queryBlogIF" parameterType="map" resultType="blog">
-        select * from mybatis.blog
-        <where>
-            <include refid="if-title-author"></include>
-        </where>
-    </select>
-    ```
+```xml
+<sql id="if-title-author">
+    <if test="title != null">
+        and title like #{title}
+    </if>
+    <if test="author != null">
+        and author = #{author}
+    </if>
+</sql>
+```
 
-    
+2、在需要使用的地方使用Include标签引用即可
+
+```xml
+<select id="queryBlogsIF" parameterType="map" resultType="com.ly.pojo.Blog">
+    select * from blog
+    <where>
+        <include refid="if-title-author"/>
+    </where>
+</select>
+```
 
 注意事项：
 
 - 最好基于单表来定义SQL片段！
-- 不要存在where标签
+- sql片段中不要存在where标签！
 
 
 
-### Foreach
+### 12.6 foreach
 
-```sql
-select * from user where 1=1 and 
+【官网】
 
-  <foreach item="id" collection="ids"
-      open="(" separator="or" close=")">
-        #{id}
-  </foreach>
-
-(id=1 or id=2 or id=3)
-
-```
-
-![1569979229205](MyBatis.assets/1569979229205.png)
-
-![1569979339190](MyBatis.assets/1569979339190.png)
+动态 SQL 的另一个常见使用场景是对集合进行遍历（尤其是在构建 IN 条件语句的时候）。比如：
 
 ```xml
-<!--
-        select * from mybatis.blog where 1=1 and (id=1 or id = 2 or id=3)
+<select id="selectPostIn" resultType="domain.blog.Post">
+    SELECT *
+    FROM POST P
+    WHERE ID in
+    <foreach item="item" index="index" collection="list"
+             open="(" separator="," close=")">
+        #{item}
+    </foreach>
+</select>
+```
 
-        我们现在传递一个万能的map ， 这map中可以存在一个集合！
--->
-<select id="queryBlogForeach" parameterType="map" resultType="blog">
-    select * from mybatis.blog
+*foreach* 元素的功能非常强大，它允许你指定一个集合，声明可以在元素体内使用的集合项（item）和索引（index）变量。它也允许你指定开头与结尾的字符串以及集合项迭代之间的分隔符。这个元素也不会错误地添加多余的分隔符，看它多智能！
 
+**提示** 你可以将任何可迭代对象（如 List、Set 等）、Map 对象或者数组对象作为集合参数传递给 *foreach*。当使用可迭代对象或者数组时，index 是当前迭代的序号，item 的值是本次迭代获取到的元素。当使用 Map 对象（或者 Map.Entry 对象的集合）时，index 是键，item 是值。
+
+至此，我们已经完成了与 XML 配置及映射文件相关的讨论。
+
+
+
+**自己的业务**
+
+原生sql实现
+
+```sql
+select * from blog where 1=1 and (id = 1 or id = 2 or id = 3);
+```
+
+ 使用mybatis实现方式  
+
+```java
+// List<Blog> queryBlogsForeach(Map<String, String> map);
+List<Blog> queryBlogsForeach(Map<String, List<String>> map);
+```
+
+```xml
+<select id="queryBlogsForeach" parameterType="map" resultType="com.ly.pojo.Blog">
+    select *
+    from blog
     <where>
-        <foreach collection="ids" item="id" open="and (" close=")" separator="or">
+        <foreach item="id" collection="idList" open="and (" separator="or" close=")">
             id = #{id}
         </foreach>
     </where>
-
 </select>
-
 ```
+
+```java
+// 条件查询：List<Blog> queryBlogsForeach(Map<String, String> map);
+@Test
+public void testQueryBlogsForeach() {
+    Map<String, List<String>> map = new HashMap<>();
+    List<String> list = new ArrayList<>();
+    list.add("1");
+    list.add("2");
+    list.add("3");
+    map.put("idList", list);
+    try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+        List<Blog> blogList = mapper.queryBlogsForeach(map);
+        for (Blog blog : blogList) {
+            System.out.println(blog);
+        }
+    }
+}
+```
+
+<img src="MyBatis.assets/image-20201014184658665.png" alt="image-20201014184658665" style="zoom:50%;" />
 
 
 
@@ -3029,8 +3079,6 @@ select * from user where 1=1 and
 建议：
 
 - 现在Mysql中写出完整的SQL,再对应的去修改成为我们的动态SQL实现通用即可！
-
-
 
 
 
@@ -3047,20 +3095,20 @@ select * from user where 1=1 and
 
 
 
-1. 什么是缓存 [ Cache ]？
+1、什么是缓存 [Cache] ？
 
-    - 存在内存中的临时数据。
-    - 将用户经常查询的数据放在缓存（内存）中，用户去查询数据就不用从磁盘上(关系型数据库数据文件)查询，从缓存中查询，从而提高查询效率，解决了高并发系统的性能问题。
+- 存在内存中的临时数据。
+- 将用户经常查询的数据放在缓存（内存）中，用户去查询数据就不用从磁盘上(关系型数据库数据文件)查询，从缓存中查询，从而提高查询效率，解决了高并发系统的性能问题。
 
-2. 为什么使用缓存？
+2、为什么使用缓存？
 
-    - 减少和数据库的交互次数，减少系统开销，提高系统效率。
+- 减少和数据库的交互次数，减少系统开销，提高系统效率。
 
-3. 什么样的数据能使用缓存？
+3、什么样的数据能使用缓存？
 
-    - 经常查询并且不经常改变的数据。【可以使用缓存】
+- 经常查询并且不经常改变的数据。【可以使用缓存】
 
-        
+    
 
 ### 13.2、Mybatis缓存
 
@@ -3272,8 +3320,6 @@ Redis数据库来做缓存！  K-V
 
 
 ## 练习：29道练习题实战！
-
-
 
 
 

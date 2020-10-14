@@ -10,16 +10,33 @@
         values(#{id}, #{title}, #{author}, #{createTime}, #{views});
     </insert>
 
-    <select id="queryBlogsIF" parameterType="map" resultType="com.ly.pojo.Blog">
-        select * from blog where 1 = 1
+    <!--====================使用sql片段改造queryBlogsIF=========================-->
+    <sql id="if-title-author">
         <if test="title != null">
             and title like #{title}
         </if>
         <if test="author != null">
             and author = #{author}
         </if>
+    </sql>
+
+    <select id="queryBlogsIF" parameterType="map" resultType="com.ly.pojo.Blog">
+        select * from blog
+        <where>
+            <include refid="if-title-author"/>
+        </where>
     </select>
 
+<!--    <select id="queryBlogsIF" parameterType="map" resultType="com.ly.pojo.Blog">-->
+<!--        select * from blog where 1 = 1-->
+<!--        <if test="title != null">-->
+<!--            and title like #{title}-->
+<!--        </if>-->
+<!--        <if test="author != null">-->
+<!--            and author = #{author}-->
+<!--        </if>-->
+<!--    </select>-->
+    <!--====================使用sql片段改造queryBlogsIF=========================-->
 
     <select id="queryBlogsChoose" parameterType="map" resultType="com.ly.pojo.Blog">
         select * from blog
@@ -38,6 +55,16 @@
         </where>
     </select>
 
+    <select id="queryBlogsForeach" parameterType="map" resultType="com.ly.pojo.Blog">
+        select *
+        from blog
+        <where>
+            <foreach item="id" collection="idList" open="and (" separator="or" close=")">
+                id = #{id}
+            </foreach>
+        </where>
+    </select>
+
     <update id="updateBlogById" parameterType="map">
         update blog
         <set>
@@ -53,6 +80,5 @@
         </set>
         where id = #{id};
     </update>
-
 
 </mapper>

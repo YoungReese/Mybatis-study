@@ -6,10 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Test;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TestBlogMapper {
 
@@ -71,6 +68,24 @@ public class TestBlogMapper {
         try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
             BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
             List<Blog> blogList = mapper.queryBlogsChoose(map);
+            for (Blog blog : blogList) {
+                System.out.println(blog);
+            }
+        }
+    }
+
+    // 条件查询：List<Blog> queryBlogsForeach(Map<String, String> map);
+    @Test
+    public void testQueryBlogsForeach() {
+        Map<String, List<String>> map = new HashMap<>();
+        List<String> list = new ArrayList<>();
+        list.add("1");
+        list.add("2");
+        list.add("3");
+        map.put("idList", list);
+        try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+            List<Blog> blogList = mapper.queryBlogsForeach(map);
             for (Blog blog : blogList) {
                 System.out.println(blog);
             }

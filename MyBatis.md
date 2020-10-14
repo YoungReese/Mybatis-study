@@ -3340,32 +3340,34 @@ public void testQueryUserById() {
     - 新的会话查询信息，就可以从二级缓存中获取内容；
     - 不同的mapper查出的数据会放在自己对应的缓存（map）中；
 
-
+ 
 
 步骤：
 
 1、开启全局缓存
 
 ```xml
-<!--显示的开启全局缓存-->
+<!--显示的开启全局缓存，默认就是true，所以可以不写-->
 <setting name="cacheEnabled" value="true"/>
 ```
 
 2、在要使用二级缓存的Mapper中开启
 
 ```xml
-<!--在当前Mapper.xml中使用二级缓存-->
+<!--在当前UserMapper.xml中使用二级缓存，<cache/>标签采用默认值，这种情况需要将pojo下的类序列化-->
 <cache/>
 ```
 
 也可以自定义参数
 
 ```xml
-<!--在当前Mapper.xml中使用二级缓存-->
-<cache  eviction="FIFO"
-       flushInterval="60000"
-       size="512"
-       readOnly="true"/>
+<!--在当前UserMapper.xml中使用二级缓存，默认清除策略是LRU-->
+<cache>
+    eviction="FIFO"
+    flushInterval="60000"
+    size="512"
+    readOnly="true"
+</cache>
 ```
 
 3、测试
@@ -3373,6 +3375,35 @@ public void testQueryUserById() {
 报错：Caused by: java.io.NotSerializableException: com.kuang.pojo.User
 
 解决方案：我们需要将实体类序列化！否则就会报错！
+
+<img src="MyBatis.assets/image-20201015004451044.png" alt="image-20201015004451044" style="zoom:50%;" />
+
+注意：cache只对xml中注册的sql语句有效，对注解的sql语句无效！
+
+```java
+@Test
+public void testQueryUsersWithCache() {
+    List<User> userList1;
+    List<User> userList2;
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        userList1 = mapper.queryUsers();
+    }
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        userList2 = mapper.queryUsers();
+    }
+    System.out.println(userList1 == userList2);
+}
+```
+
+关闭cache情况下：
+
+<img src="MyBatis.assets/image-20201015002742115.png" alt="image-20201015002742115" style="zoom:50%;" />
+
+开启cache的情况下：
+
+<img src="MyBatis.assets/image-20201015000749341.png" alt="image-20201015000749341" style="zoom:50%;" />
 
 
 

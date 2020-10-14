@@ -10,6 +10,8 @@
     <settings>
         <setting name="logImpl" value="STDOUT_LOGGING"/>
         <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!--是否开启缓存，默认就是true，所以可以不写-->
+        <setting name="cacheEnabled" value="true"/>
     </settings>
 
     <environments default="development">

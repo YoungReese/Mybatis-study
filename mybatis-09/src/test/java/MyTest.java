@@ -13,6 +13,22 @@ import java.util.List;
 public class MyTest {
 
     @Test
+    public void testQueryUsersWithCache() {
+        List<User> userList1;
+        List<User> userList2;
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+            userList1 = mapper.queryUsers();
+        }
+        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+            UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+            userList2 = mapper.queryUsers();
+        }
+        System.out.println(userList1 == userList2);
+    }
+
+
+    @Test
     public void testQueryUsers() {
         try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
@@ -23,18 +39,13 @@ public class MyTest {
         }
     }
 
+    // cache的开启对于注解生成的sql语句不起作用，亲测！
     @Test
     public void testQueryUserById() {
-        try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        try(SqlSession sqlSession = MybatisUtils.getSqlSession()) {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
-            User user1 = mapper.queryUserById(1);
-            System.out.println(user1);
-
-//            sqlSession.clearCache();
-
-            User user2 = mapper.queryUserById(1);
-            System.out.println(user2);
-            System.out.println(user1 == user2);
+            User user = mapper.queryUserById(1);
+            System.out.println(user);
         }
     }
 

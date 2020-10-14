@@ -3082,13 +3082,13 @@ public void testQueryBlogsForeach() {
 
 
 
-## 13、缓存 （了解）
+## 13 缓存 （了解）
 
-### 13.1、简介
+### 13.1 简介
 
 ```
-查询  ：  连接数据库 ，耗资源！
-	一次查询的结果，给他暂存在一个可以直接取到的地方！--> 内存 ： 缓存
+查询：连接数据库，耗资源！
+一次查询的结果，给他暂存在一个可以直接取到的地方！--> 内存：缓存
 	
 我们再次查询相同数据的时候，直接走缓存，就不用走数据库了
 ```
@@ -3110,21 +3110,109 @@ public void testQueryBlogsForeach() {
 
     
 
-### 13.2、Mybatis缓存
+### 13.2 Mybatis缓存
 
 - MyBatis包含一个非常强大的查询缓存特性，它可以非常方便地定制和配置缓存。缓存可以极大的提升查询效率。
-
 - MyBatis系统中默认定义了两级缓存：**一级缓存**和**二级缓存**
-
     - 默认情况下，只有一级缓存开启。（SqlSession级别的缓存，也称为本地缓存）
 
     - 二级缓存需要手动开启和配置，他是基于namespace级别的缓存。
 
     - 为了提高扩展性，MyBatis定义了缓存接口Cache。我们可以通过实现Cache接口来自定义二级缓存
 
-        
+【[官网-cache](https://mybatis.org/mybatis-3/zh/sqlmap-xml.html#cache)】
 
-### 13.3、一级缓存
+```
+<cache
+  eviction="FIFO"
+  flushInterval="60000"
+  size="512"
+  readOnly="true"/>
+```
+
+这个更高级的配置创建了一个 FIFO 缓存，每隔 60 秒刷新，最多可以存储结果对象或列表的 512 个引用，而且返回的对象被认为是只读的，因此对它们进行修改可能会在不同线程中的调用者产生冲突。
+
+可用的清除策略有：
+
+-   `LRU` – 最近最少使用：移除最长时间不被使用的对象。
+-   `FIFO` – 先进先出：按对象进入缓存的顺序来移除它们。
+-   `SOFT` – 软引用：基于垃圾回收器状态和软引用规则移除对象。
+-   `WEAK` – 弱引用：更积极地基于垃圾收集器状态和弱引用规则移除对象。
+
+默认的清除策略是 LRU。
+
+flushInterval（刷新间隔）属性可以被设置为任意的正整数，设置的值应该是一个以毫秒为单位的合理时间量。 默认情况是不设置，也就是没有刷新间隔，缓存仅仅会在调用语句时刷新。
+
+size（引用数目）属性可以被设置为任意正整数，要注意欲缓存对象的大小和运行环境中可用的内存资源。默认值是 1024。
+
+readOnly（只读）属性可以被设置为 true 或 false。只读的缓存会给所有调用者返回缓存对象的相同实例。 因此这些对象不能被修改。这就提供了可观的性能提升。而可读写的缓存会（通过序列化）返回缓存对象的拷贝。 速度上会慢一些，但是更安全，因此默认值是 false。
+
+**提示** 二级缓存是事务性的。这意味着，当 SqlSession 完成并提交时，或是完成并回滚，但没有执行 flushCache=true 的 insert/delete/update 语句时，缓存会获得更新。
+
+#### 使用自定义缓存
+
+除了上述自定义缓存的方式，你也可以通过实现你自己的缓存，或为其他第三方缓存方案创建适配器，来完全覆盖缓存行为。
+
+```
+<cache type="com.domain.something.MyCustomCache"/>
+```
+
+这个示例展示了如何使用一个自定义的缓存实现。type 属性指定的类必须实现 org.apache.ibatis.cache.Cache 接口，且提供一个接受 String 参数作为 id 的构造器。 这个接口是 MyBatis 框架中许多复杂的接口之一，但是行为却非常简单。
+
+```
+public interface Cache {
+  String getId();
+  int getSize();
+  void putObject(Object key, Object value);
+  Object getObject(Object key);
+  boolean hasKey(Object key);
+  Object removeObject(Object key);
+  void clear();
+}
+```
+
+为了对你的缓存进行配置，只需要简单地在你的缓存实现中添加公有的 JavaBean 属性，然后通过 cache 元素传递属性值，例如，下面的例子将在你的缓存实现上调用一个名为 `setCacheFile(String file)` 的方法：
+
+```
+<cache type="com.domain.something.MyCustomCache">
+  <property name="cacheFile" value="/tmp/my-custom-cache.tmp"/>
+</cache>
+```
+
+你可以使用所有简单类型作为 JavaBean 属性的类型，MyBatis 会进行转换。 你也可以使用占位符（如 `${cache.file}`），以便替换成在[配置文件属性](https://mybatis.org/mybatis-3/zh/configuration.html#properties)中定义的值。
+
+从版本 3.4.2 开始，MyBatis 已经支持在所有属性设置完毕之后，调用一个初始化方法。 如果想要使用这个特性，请在你的自定义缓存类里实现 `org.apache.ibatis.builder.InitializingObject` 接口。
+
+```
+public interface InitializingObject {
+  void initialize() throws Exception;
+}
+```
+
+**提示** 上一节中对缓存的配置（如清除策略、可读或可读写等），不能应用于自定义缓存。
+
+请注意，缓存的配置和缓存实例会被绑定到 SQL 映射文件的命名空间中。 因此，同一命名空间中的所有语句和缓存将通过命名空间绑定在一起。 每条语句可以自定义与缓存交互的方式，或将它们完全排除于缓存之外，这可以通过在每条语句上使用两个简单属性来达成。 默认情况下，语句会这样来配置：
+
+```
+<select ... flushCache="false" useCache="true"/>
+<insert ... flushCache="true"/>
+<update ... flushCache="true"/>
+<delete ... flushCache="true"/>
+```
+
+鉴于这是默认行为，显然你永远不应该以这样的方式显式配置一条语句。但如果你想改变默认的行为，只需要设置 flushCache 和 useCache 属性。比如，某些情况下你可能希望特定 select 语句的结果排除于缓存之外，或希望一条 select 语句清空缓存。类似地，你可能希望某些 update 语句执行时不要刷新缓存。
+
+#### cache-ref
+
+回想一下上一节的内容，对某一命名空间的语句，只会使用该命名空间的缓存进行缓存或刷新。 但你可能会想要在多个命名空间中共享相同的缓存配置和实例。要实现这种需求，你可以使用 cache-ref 元素来引用另一个缓存。
+
+```
+<cache-ref namespace="com.someone.application.data.SomeMapper"/>
+```
+
+
+
+### 13.3 一级缓存
 
 - 一级缓存也叫本地缓存：  SqlSession
     - 与数据库同一次会话期间查询到的数据会放在本地缓存中。
@@ -3134,29 +3222,106 @@ public void testQueryBlogsForeach() {
 
 测试步骤：
 
-1. 开启日志！
-2. 测试在一个Sesion中查询两次相同记录
-3. 查看日志输出
+1、开启日志！
 
-![1569983650437](MyBatis.assets/1569983650437.png)
+2、测试在一个Sesion中查询两次相同记录
+
+查看日志输出
+
+```java
+@Test
+public void testQueryUserById() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        User user1 = mapper.queryUserById(1);
+        System.out.println(user1);
+        User user2 = mapper.queryUserById(1);
+        System.out.println(user2);
+        System.out.println(user1 == user2);
+    }
+}
+```
+
+<img src="MyBatis.assets/image-20201014195319851.png" alt="image-20201014195319851" style="zoom:50%;" />
 
 
 
-缓存失效的情况：
+缓存不失效的情况：查询不同的东西后，接着查询已查询过的东西，之前的直接走缓存（但是在一个sqlsession中，之前查的还保存着！）
 
-1. 查询不同的东西
+```java
+@Test
+public void testQueryUserById() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        User user1 = mapper.queryUserById(1);
+        System.out.println(user1);
 
-2. 增删改操作，可能会改变原来的数据，所以必定会刷新缓存！
+        User user3 = mapper.queryUserById(2);
+        System.out.println(user3);
 
-    ![1569983952321](MyBatis.assets/1569983952321.png)
+        User user2 = mapper.queryUserById(1);
+        System.out.println(user2);
+        System.out.println(user1 == user2);
+    }
+}
+```
 
-3. 查询不同的Mapper.xml
-
-4. 手动清理缓存！
-
-    ![1569984008824](MyBatis.assets/1569984008824.png)
+<img src="MyBatis.assets/image-20201014195940866.png" alt="image-20201014195940866" style="zoom:50%;" />
 
 
+
+缓存失效情况
+
+1、增删改操作，可能会改变原来的数据，所以必定会刷新缓存！（即使同一个sqlsession也会立马刷新，原缓存直接清空！）
+
+```java
+@Test
+public void testQueryUserById() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        User user1 = mapper.queryUserById(1);
+        System.out.println(user1);
+
+        int res = mapper.updateUserById(4, "王五", "123");
+        if (res > 0) {
+            System.out.println("=======插入成功！======");
+        }
+
+        User user2 = mapper.queryUserById(1);
+        System.out.println(user2);
+        System.out.println(user1 == user2);
+    }
+}
+```
+
+<img src="MyBatis.assets/image-20201014205439420.png" alt="image-20201014205439420" style="zoom:50%;" />
+
+2、查询不同的Mapper.xml
+
+3、手动清理缓存！
+
+```java
+@Test
+public void testQueryUserById() {
+    try (SqlSession sqlSession = MybatisUtils.getSqlSession()) {
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        User user1 = mapper.queryUserById(1);
+        System.out.println(user1);
+
+        sqlSession.clearCache();
+
+        User user2 = mapper.queryUserById(1);
+        System.out.println(user2);
+        System.out.println(user1 == user2);
+    }
+}
+```
+
+<img src="MyBatis.assets/image-20201014210430085.png" alt="image-20201014210430085" style="zoom:50%;" />
+
+打个断点，debug一下，如果不清楚缓存，那么cache可供try块内的下一次的同样的查询。
+
+<img src="MyBatis.assets/image-20201014211237858.png" alt="image-20201014211237858" style="zoom:50%;" />
 
 小结：一级缓存默认是开启的，只在一次SqlSession中有效，也就是拿到连接到关闭连接这个区间段！
 
@@ -3165,7 +3330,7 @@ public void testQueryBlogsForeach() {
 
 
 
-### 13.4、二级缓存
+### 13.4 二级缓存
 
 - 二级缓存也叫全局缓存，一级缓存作用域太低了，所以诞生了二级缓存
 - 基于namespace级别的缓存，一个名称空间，对应一个二级缓存；
@@ -3179,37 +3344,35 @@ public void testQueryBlogsForeach() {
 
 步骤：
 
-1. 开启全局缓存
+1、开启全局缓存
 
-    ```xml
-    <!--显示的开启全局缓存-->
-    <setting name="cacheEnabled" value="true"/>
-    ```
+```xml
+<!--显示的开启全局缓存-->
+<setting name="cacheEnabled" value="true"/>
+```
 
-2. 在要使用二级缓存的Mapper中开启
+2、在要使用二级缓存的Mapper中开启
 
-    ```xml
-    <!--在当前Mapper.xml中使用二级缓存-->
-    <cache/>
-    ```
+```xml
+<!--在当前Mapper.xml中使用二级缓存-->
+<cache/>
+```
 
-    也可以自定义参数
+也可以自定义参数
 
-    ```xml
-    <!--在当前Mapper.xml中使用二级缓存-->
-    <cache  eviction="FIFO"
-           flushInterval="60000"
-           size="512"
-           readOnly="true"/>
-    ```
+```xml
+<!--在当前Mapper.xml中使用二级缓存-->
+<cache  eviction="FIFO"
+       flushInterval="60000"
+       size="512"
+       readOnly="true"/>
+```
 
-3. 测试
+3、测试
 
-    1. 问题:我们需要将实体类序列化！否则就会报错！
+报错：Caused by: java.io.NotSerializableException: com.kuang.pojo.User
 
-        ```
-        Caused by: java.io.NotSerializableException: com.kuang.pojo.User
-        ```
+解决方案：我们需要将实体类序列化！否则就会报错！
 
 
 
@@ -3223,7 +3386,7 @@ public void testQueryBlogsForeach() {
 
 
 
-### 13.5、缓存原理
+### 13.5 缓存原理
 
 ![1569985541106](MyBatis.assets/1569985541106.png)
 

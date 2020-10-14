@@ -8,4 +8,5 @@ public class TestIdUtils {
     public void testGetId() {
         System.out.println(IdUtils.getId());
     }
+
 }

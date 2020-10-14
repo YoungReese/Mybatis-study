@@ -2,7 +2,7 @@ import com.ly.dao.BlogMapper;
 import com.ly.pojo.Blog;
 import com.ly.utils.IdUtils;
 import com.ly.utils.MybatisUtils;
-import org.apache.ibatis.annotations.Mapper;
+
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Test;
 
@@ -105,7 +105,6 @@ public class TestBlogMapper {
             if (res > 0) System.out.println("更新成功！");
         }
     }
-
 
 
 }

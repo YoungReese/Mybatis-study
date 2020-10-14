@@ -13,7 +13,12 @@
 <!--        readOnly="true"-->
 <!--    />-->
 
-    <cache/>
+<!--    <cache/>-->
+
+
+    <!--使用自定义的cache，为了快速实践，使用第三方优质cache库-->
+    <cache type="org.mybatis.caches.ehcache.EhcacheCache"/>
+
 
     <select id="queryUsers" resultType="com.ly.pojo.User">
         select * from user;

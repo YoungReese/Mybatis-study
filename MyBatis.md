@@ -3548,7 +3548,7 @@ Logging initialized using 'class org.apache.ibatis.logging.stdout.StdOutImpl' ad
 
 <img src="MyBatis.assets/image-20201015023100440.png" alt="image-20201015023100440" style="zoom:50%;" />
 
-生成的文件如下，
+生成的文件如下
 
 <img src="MyBatis.assets/image-20201015024613365.png" alt="image-20201015024613365" style="zoom:50%;" />
 
@@ -3562,9 +3562,17 @@ Redis数据库来做缓存！  K-V
 
 
 
-==【**练习：29道练习题实战！项目-smbms-web**】==
+==【**练习：29道练习题实战！项目：smbms-web**】==
 
+1、搭建环境
 
+2、拷贝utils相关类
+
+3、拷贝pojo相关类
+
+4、拷贝接口，完成接口的crud（编写对应的xml文件）
+
+5、单元测试
 
 
 

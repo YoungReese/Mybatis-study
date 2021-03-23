@@ -36,7 +36,7 @@ public class UserMapperTest {
         SqlSession sqlSession = MybatisUtils.getSqlSession();
         try {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
-            User user = mapper.getUserById(1);
+            User user = mapper.getUserById(11);
             System.out.println(user);
         } finally {
             sqlSession.close();
@@ -50,7 +50,10 @@ public class UserMapperTest {
         SqlSession sqlSession = MybatisUtils.getSqlSession();
         try {
             UserMapper mapper = sqlSession.getMapper(UserMapper.class);
-            int res = mapper.addUser(new User(4, "王五", "12345678"));
+            User user = new User();
+            user.setId(11);
+            user.setName("none");
+            int res = mapper.addUser(user);
             if (res > 0) {
                 System.out.println("插入成功");
                 sqlSession.commit();
